@@ -1,7 +1,10 @@
 """Repo/ZRead API client for Z.AI.
 
 This module provides the RepoClient class for GitHub repository exploration
-using the Z.AI ZRead API via direct HTTP calls (not MCP).
+using the Z.AI ZRead API via MCP protocol.
+
+NOTE: The ZRead API requires UTCP/MCP protocol which is not fully supported
+in this Python implementation. Use the Node.js zai-cli for repo commands.
 """
 from __future__ import annotations
 
@@ -133,7 +136,15 @@ class RepoClient:
 
                     # Handle successful response
                     if response.status_code == 200:
-                        data = response.json()
+                        if not response.content:
+                            raise ApiError(
+                                "ZRead API requires UTCP/MCP protocol. "
+                                "Use 'zai-cli repo' command instead, or ensure the service is available."
+                            )
+                        try:
+                            data = response.json()
+                        except Exception as e:
+                            raise ApiError(f"Invalid JSON response: {e}")
                         # MCP response format: {"result": {"content": [{"type": "text", "text": "..."}]}}
                         if "result" in data:
                             result = data["result"]
