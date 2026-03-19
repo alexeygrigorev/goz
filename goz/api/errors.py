@@ -127,3 +127,23 @@ class TimeoutError(ZaiError):
             code="TIMEOUT_ERROR",
             help="Try again or increase timeout with Z_AI_TIMEOUT env var",
         )
+
+
+class ValidationError(ZaiError):
+    """Validation error for invalid input parameters.
+
+    This error is raised when input validation fails, such as invalid URLs,
+    invalid format values, or other parameter validation issues.
+    """
+
+    def __init__(self, message: str) -> None:
+        """Initialize ValidationError.
+
+        Args:
+            message: Human-readable error message describing the validation failure
+        """
+        super().__init__(
+            message=message,
+            code="VALIDATION_ERROR",
+            help="Check your input parameters and try again.",
+        )

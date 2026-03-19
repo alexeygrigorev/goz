@@ -1,7 +1,7 @@
 # Issue 05: Search API Implementation
 
 ## Status
-.todo
+.groomed
 
 ## Description
 Implement web search API with domain and recency filtering.

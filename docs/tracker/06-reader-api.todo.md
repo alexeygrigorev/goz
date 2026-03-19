@@ -1,7 +1,7 @@
 # Issue 06: Reader API Implementation
 
 ## Status
-.todo
+.groomed - See 06-reader-api.groomed.md
 
 ## Description
 Implement web reader API for fetching pages as markdown.
