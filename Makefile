@@ -1,4 +1,7 @@
-.PHONY: test setup shell coverage lint format publish-build publish-test publish publish-clean
+.PHONY: goz test setup shell coverage lint format publish-build publish-test publish publish-clean
+
+goz:
+	uv run goz
 
 test:
 	uv run pytest

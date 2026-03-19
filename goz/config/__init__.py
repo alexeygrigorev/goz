@@ -13,7 +13,7 @@ DEFAULT_CONFIG_DIR = Path.home() / ".config" / "goz"
 DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.json"
 
 # Default values (Acceptance Criteria 2)
-DEFAULT_ANTHROPIC_BASE_URL = "https://api.z.ai/api/anthropic"
+DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/anthropic"
 DEFAULT_TIMEOUT = 120
 
 
@@ -21,21 +21,21 @@ class Config(BaseModel):
     """Configuration model for goz.
 
     Fields:
-        anthropic_auth_token: Z.AI auth token for API access
-        anthropic_base_url: Base URL for Anthropic API
+        zai_token: Z.AI auth token for API access
+        zai_base_url: Base URL for Anthropic API
         timeout: Request timeout in seconds
     """
 
-    anthropic_auth_token: str
-    anthropic_base_url: str = DEFAULT_ANTHROPIC_BASE_URL
+    zai_token: str
+    zai_base_url: str = DEFAULT_ZAI_BASE_URL
     timeout: int = Field(default=DEFAULT_TIMEOUT, gt=0)
 
-    @field_validator("anthropic_auth_token")
+    @field_validator("zai_token")
     @classmethod
     def token_not_empty(cls, v: str) -> str:
         """Validate token is not empty."""
         if not v or not v.strip():
-            raise ValueError("anthropic_auth_token cannot be empty")
+            raise ValueError("zai_token cannot be empty")
         return v
 
 
@@ -96,7 +96,7 @@ class ConfigManager:
         """Prompt user for token and create config file (Acceptance Criteria 3, 4)."""
         token = input("Enter your Z.AI auth token: ")
 
-        config = Config(anthropic_auth_token=token)
+        config = Config(zai_token=token)
         self.save(config)
 
         print(f"Config saved to {self.config_file}")
@@ -107,10 +107,10 @@ class ConfigManager:
         config = self.load()
 
         # Mask token - show only last 4 chars (Acceptance Criteria 7)
-        masked_token = self._mask_token(config.anthropic_auth_token)
+        masked_token = self._mask_token(config.zai_token)
 
-        print(f"anthropic_auth_token: {masked_token}")
-        print(f"anthropic_base_url: {config.anthropic_base_url}")
+        print(f"zai_token: {masked_token}")
+        print(f"zai_base_url: {config.zai_base_url}")
         print(f"timeout: {config.timeout}")
 
     def _mask_token(self, token: str) -> str:
@@ -138,7 +138,7 @@ class ConfigManager:
         """
         config = self.load()
 
-        valid_keys = ["anthropic_auth_token", "anthropic_base_url", "timeout"]
+        valid_keys = ["zai_token", "zai_base_url", "timeout"]
 
         if key not in valid_keys:
             raise ValueError(f"Invalid config key: {key}. Valid keys: {', '.join(valid_keys)}")

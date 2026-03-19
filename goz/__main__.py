@@ -1,8 +1,39 @@
 """Main entry point for the goz CLI."""
 
+import asyncio
 import sys
 
 from goz import __version__
+
+
+async def cmd_vision(args: list[str]) -> None:
+    """Handle the `goz vision` command.
+
+    Usage:
+        goz vision <image_path_or_url> [prompt]
+
+    Args:
+        args: [image_path_or_url, prompt]
+    """
+    if not args:
+        print("Usage: goz vision <image_path_or_url> [prompt]", file=sys.stderr)
+        sys.exit(1)
+
+    from goz.api.vision import VisionClient
+    from goz.config import load_config
+
+    config = load_config()
+    client = VisionClient(config=config)
+
+    image = args[0]
+    prompt = args[1] if len(args) > 1 else "Describe this image in detail."
+
+    try:
+        result = await client.analyze(image, prompt)
+        print(result)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def cmd_config(args: list[str]) -> None:
@@ -66,6 +97,8 @@ def main() -> None:
     # Dispatch to command handlers
     if args.command == "config":
         cmd_config(args.args)
+    elif args.command == "vision":
+        asyncio.run(cmd_vision(args.args))
     else:
         print(f"Command '{args.command}' not yet implemented")
 

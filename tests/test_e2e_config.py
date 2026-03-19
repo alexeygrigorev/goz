@@ -15,49 +15,49 @@ class TestConfigModel:
     def test_config_model_with_valid_data(self):
         """Test Config model accepts valid data."""
         config = Config(
-            anthropic_auth_token="sk-ant-test1234567890abcdef",
-            anthropic_base_url="https://api.z.ai/api/anthropic",
+            zai_token="sk-ant-test1234567890abcdef",
+            zai_base_url="https://api.z.ai/api/anthropic",
             timeout=120,
         )
-        assert config.anthropic_auth_token == "sk-ant-test1234567890abcdef"
-        assert config.anthropic_base_url == "https://api.z.ai/api/anthropic"
+        assert config.zai_token == "sk-ant-test1234567890abcdef"
+        assert config.zai_base_url == "https://api.z.ai/api/anthropic"
         assert config.timeout == 120
 
     def test_config_model_with_defaults(self):
         """Test Config model uses default values."""
-        config = Config(anthropic_auth_token="sk-ant-test1234567890abcdef")
-        assert config.anthropic_auth_token == "sk-ant-test1234567890abcdef"
-        assert config.anthropic_base_url == "https://api.z.ai/api/anthropic"
+        config = Config(zai_token="sk-ant-test1234567890abcdef")
+        assert config.zai_token == "sk-ant-test1234567890abcdef"
+        assert config.zai_base_url == "https://api.z.ai/api/anthropic"
         assert config.timeout == 120
 
     def test_config_model_validation_error(self):
         """Test Config model raises ValidationError for invalid data."""
         with pytest.raises(ValidationError):
-            Config(anthropic_auth_token="", timeout=-1)
+            Config(zai_token="", timeout=-1)
 
     def test_config_model_timeout_must_be_positive(self):
         """Test timeout must be a positive integer."""
         with pytest.raises(ValidationError):
-            Config(anthropic_auth_token="sk-ant-test1234567890abcdef", timeout=0)
+            Config(zai_token="sk-ant-test1234567890abcdef", timeout=0)
 
     def test_config_model_serialization(self):
         """Test Config model serializes to JSON correctly."""
         config = Config(
-            anthropic_auth_token="sk-ant-test1234567890abcdef",
-            anthropic_base_url="https://api.z.ai/api/anthropic",
+            zai_token="sk-ant-test1234567890abcdef",
+            zai_base_url="https://api.z.ai/api/anthropic",
             timeout=120,
         )
         data = json.loads(config.model_dump_json())
-        assert data["anthropic_auth_token"] == "sk-ant-test1234567890abcdef"
-        assert data["anthropic_base_url"] == "https://api.z.ai/api/anthropic"
+        assert data["zai_token"] == "sk-ant-test1234567890abcdef"
+        assert data["zai_base_url"] == "https://api.z.ai/api/anthropic"
         assert data["timeout"] == 120
 
     def test_config_model_deserialization(self):
         """Test Config model deserializes from JSON correctly."""
-        json_str = '{"anthropic_auth_token": "sk-ant-test1234567890abcdef", "anthropic_base_url": "https://api.z.ai/api/anthropic", "timeout": 120}'
+        json_str = '{"zai_token": "sk-ant-test1234567890abcdef", "zai_base_url": "https://api.z.ai/api/anthropic", "timeout": 120}'
         config = Config.model_validate_json(json_str)
-        assert config.anthropic_auth_token == "sk-ant-test1234567890abcdef"
-        assert config.anthropic_base_url == "https://api.z.ai/api/anthropic"
+        assert config.zai_token == "sk-ant-test1234567890abcdef"
+        assert config.zai_base_url == "https://api.z.ai/api/anthropic"
         assert config.timeout == 120
 
 
@@ -99,8 +99,8 @@ class TestFirstRunCreatesConfig:
 
                 with open(config_file) as f:
                     data = json.load(f)
-                assert data["anthropic_auth_token"] == "sk-ant-test1234567890abcdef"
-                assert data["anthropic_base_url"] == "https://api.z.ai/api/anthropic"
+                assert data["zai_token"] == "sk-ant-test1234567890abcdef"
+                assert data["zai_base_url"] == "https://api.z.ai/api/anthropic"
                 assert data["timeout"] == 120
 
 
@@ -115,8 +115,8 @@ class TestSilentLoading:
         config_file.parent.mkdir(parents=True, exist_ok=True)
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-existingtoken123",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-existingtoken123",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
@@ -124,7 +124,7 @@ class TestSilentLoading:
             manager = ConfigManager()
             config = manager.load()
 
-            assert config.anthropic_auth_token == "sk-ant-existingtoken123"
+            assert config.zai_token == "sk-ant-existingtoken123"
 
             # Verify no prompt was shown
             captured = capsys.readouterr()
@@ -141,8 +141,8 @@ class TestConfigCommand:
 
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-test1234567890abcdef",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-test1234567890abcdef",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
@@ -153,7 +153,7 @@ class TestConfigCommand:
             captured = capsys.readouterr()
             assert "****cdef" in captured.out  # Last 4 chars
             assert "sk-ant-test1234567890abcdef" not in captured.out  # Full token not shown
-            assert "anthropic_base_url" in captured.out
+            assert "zai_base_url" in captured.out
             assert "https://api.z.ai/api/anthropic" in captured.out
             assert "timeout" in captured.out
             assert "120" in captured.out
@@ -165,8 +165,8 @@ class TestConfigCommand:
 
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
@@ -182,47 +182,47 @@ class TestConfigSetCommand:
     """Tests for goz config set command (Acceptance Criteria 8)."""
 
     def test_config_set_updates_token(self, tmp_path):
-        """Test goz config set anthropic_auth_token <token> updates file."""
+        """Test goz config set zai_token <token> updates file."""
         config_file = tmp_path / "config.json"
         config_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Create initial config
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-oldtoken123",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-oldtoken123",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
         with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
             manager = ConfigManager()
-            manager.set_config("anthropic_auth_token", "sk-ant-newtoken456")
+            manager.set_config("zai_token", "sk-ant-newtoken456")
 
             with open(config_file) as f:
                 data = json.load(f)
-            assert data["anthropic_auth_token"] == "sk-ant-newtoken456"
-            assert data["anthropic_base_url"] == "https://api.z.ai/api/anthropic"
+            assert data["zai_token"] == "sk-ant-newtoken456"
+            assert data["zai_base_url"] == "https://api.z.ai/api/anthropic"
             assert data["timeout"] == 120  # Other fields preserved
 
     def test_config_set_updates_base_url(self, tmp_path):
-        """Test goz config set anthropic_base_url <url> updates file."""
+        """Test goz config set zai_base_url <url> updates file."""
         config_file = tmp_path / "config.json"
         config_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-test123",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-test123",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
         with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
             manager = ConfigManager()
-            manager.set_config("anthropic_base_url", "https://custom.api.com/v1")
+            manager.set_config("zai_base_url", "https://custom.api.com/v1")
 
             with open(config_file) as f:
                 data = json.load(f)
-            assert data["anthropic_base_url"] == "https://custom.api.com/v1"
+            assert data["zai_base_url"] == "https://custom.api.com/v1"
 
     def test_config_set_updates_timeout(self, tmp_path):
         """Test goz config set timeout <value> updates file."""
@@ -231,8 +231,8 @@ class TestConfigSetCommand:
 
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-test123",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-test123",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
@@ -274,7 +274,7 @@ class TestInvalidJson:
             with patch("builtins.input", return_value="sk-ant-newtoken123"):
                 manager = ConfigManager()
                 config = manager.load()
-                assert config.anthropic_auth_token == "sk-ant-newtoken123"
+                assert config.zai_token == "sk-ant-newtoken123"
 
 
 class TestTokenNeverExposed:
@@ -288,8 +288,8 @@ class TestTokenNeverExposed:
         full_token = "sk-ant-test1234567890abcdef"
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": full_token,
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": full_token,
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
@@ -312,8 +312,8 @@ class TestCLIConfigCommand:
 
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-test1234567890abcdef",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-test1234567890abcdef",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
@@ -326,25 +326,25 @@ class TestCLIConfigCommand:
             captured = capsys.readouterr()
             assert "****cdef" in captured.out
             assert "sk-ant-test1234567890abcdef" not in captured.out
-            assert "anthropic_base_url: https://api.z.ai/api/anthropic" in captured.out
+            assert "zai_base_url: https://api.z.ai/api/anthropic" in captured.out
             assert "timeout: 120" in captured.out
 
     def test_goz_config_set_updates_token(self, tmp_path, capsys):
-        """Test `goz config set anthropic_auth_token <token>` updates file."""
+        """Test `goz config set zai_token <token>` updates file."""
         config_file = tmp_path / "config.json"
         config_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-oldtoken123",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-oldtoken123",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
         with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
             from goz.__main__ import main
             import sys
-            sys.argv = ["goz", "config", "set", "anthropic_auth_token", "sk-ant-newtoken456"]
+            sys.argv = ["goz", "config", "set", "zai_token", "sk-ant-newtoken456"]
             main()
 
             captured = capsys.readouterr()
@@ -352,7 +352,7 @@ class TestCLIConfigCommand:
 
             with open(config_file) as f:
                 data = json.load(f)
-            assert data["anthropic_auth_token"] == "sk-ant-newtoken456"
+            assert data["zai_token"] == "sk-ant-newtoken456"
 
     def test_goz_config_set_invalid_key_shows_error(self, tmp_path, capsys):
         """Test `goz config set <invalid_key>` shows error."""
@@ -361,8 +361,8 @@ class TestCLIConfigCommand:
 
         with open(config_file, "w") as f:
             json.dump({
-                "anthropic_auth_token": "sk-ant-test123",
-                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "zai_token": "sk-ant-test123",
+                "zai_base_url": "https://api.z.ai/api/anthropic",
                 "timeout": 120,
             }, f)
 
