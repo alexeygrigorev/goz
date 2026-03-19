@@ -13,22 +13,42 @@ DEFAULT_CONFIG_DIR = Path.home() / ".config" / "goz"
 DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.json"
 
 # Default values (Acceptance Criteria 2)
-DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/anthropic"
-DEFAULT_TIMEOUT = 120
+DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4"
+DEFAULT_TIMEOUT = 300000  # 5 minutes in milliseconds
+DEFAULT_TIMEOUT_SECONDS = 120  # For Python clients (seconds)
+
+# Default model names
+DEFAULT_VISION_MODEL = "glm-4.6v"
+DEFAULT_CHAT_MODEL = "glm-5-turbo"
+
+# Generation parameters
+DEFAULT_TEMPERATURE = 0.8
+DEFAULT_TOP_P = 0.6
+DEFAULT_MAX_TOKENS = 32768
 
 
 class Config(BaseModel):
     """Configuration model for goz.
 
     Fields:
-        zai_token: Z.AI auth token for API access
-        zai_base_url: Base URL for Anthropic API
+        zai_token: Z.AI auth token for API access (like apiKey in zai-cli)
+        zai_base_url: Base URL for API (like baseUrl in zai-cli)
         timeout: Request timeout in seconds
+        vision_model: Model for image/video analysis
+        chat_model: Model for chat/text requests
+        temperature: Generation temperature
+        top_p: Generation top_p
+        max_tokens: Maximum tokens in response
     """
 
     zai_token: str
     zai_base_url: str = DEFAULT_ZAI_BASE_URL
-    timeout: int = Field(default=DEFAULT_TIMEOUT, gt=0)
+    timeout: int = Field(default=DEFAULT_TIMEOUT_SECONDS, gt=0)
+    vision_model: str = DEFAULT_VISION_MODEL
+    chat_model: str = DEFAULT_CHAT_MODEL
+    temperature: float = DEFAULT_TEMPERATURE
+    top_p: float = DEFAULT_TOP_P
+    max_tokens: int = DEFAULT_MAX_TOKENS
 
     @field_validator("zai_token")
     @classmethod
@@ -138,7 +158,7 @@ class ConfigManager:
         """
         config = self.load()
 
-        valid_keys = ["zai_token", "zai_base_url", "timeout"]
+        valid_keys = ["zai_token", "zai_base_url", "timeout", "vision_model", "ocr_model", "chat_model"]
 
         if key not in valid_keys:
             raise ValueError(f"Invalid config key: {key}. Valid keys: {', '.join(valid_keys)}")

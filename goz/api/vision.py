@@ -107,8 +107,17 @@ class VisionClient:
         self,
         endpoint: str,
         body: dict[str, Any],
+        model: str | None = None,
     ) -> dict[str, Any]:
         """Make HTTP request to API with retry logic.
+
+        Args:
+            endpoint: API endpoint path
+            body: Request body dict
+            model: Optional model name to use (defaults to VISION_MODEL)
+
+        Returns:
+            Parsed JSON response dict
 
         Args:
             endpoint: API endpoint path
@@ -268,9 +277,13 @@ class VisionClient:
 
         # Make API request
         body = {
-            "model": "claude-3-5-sonnet-20241022",
+            "model": self.config.vision_model,
             "messages": [{"role": "user", "content": content}],
-            "max_tokens": 4096,
+            "thinking": {"type": "enabled"},
+            "stream": False,
+            "temperature": self.config.temperature,
+            "top_p": self.config.top_p,
+            "max_tokens": self.config.max_tokens,
         }
 
         response = await self._request("/chat/completions", body)
