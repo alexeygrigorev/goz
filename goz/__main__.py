@@ -36,6 +36,88 @@ async def cmd_vision(args: list[str]) -> None:
         sys.exit(1)
 
 
+async def cmd_search(args: list[str]) -> None:
+    """Handle the `goz search` command.
+
+    Usage:
+        goz search <query> [--count N] [--domain DOMAIN] [--recency R]
+
+    Args:
+        args: Command arguments
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="goz search")
+    parser.add_argument("query", help="Search query")
+    parser.add_argument("--count", "-c", type=int, help="Number of results")
+    parser.add_argument("--domain", "-d", help="Filter to domain")
+    parser.add_argument("--recency", "-r",
+                        choices=["oneDay", "oneWeek", "oneMonth", "oneYear", "noLimit"],
+                        help="Time filter")
+
+    parsed = parser.parse_args(args)
+
+    from goz.api.search import SearchClient
+    from goz.config import load_config
+
+    config = load_config()
+    client = SearchClient(config=config)
+
+    try:
+        results = await client.search(
+            query=parsed.query,
+            count=parsed.count,
+            domain_filter=parsed.domain,
+            recency_filter=parsed.recency,
+        )
+        for r in results:
+            print(f"{r.rank}. {r.title}")
+            print(f"   {r.url}")
+            if r.summary:
+                print(f"   {r.summary[:100]}...")
+            print()
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+async def cmd_read(args: list[str]) -> None:
+    """Handle the `goz read` command.
+
+    Usage:
+        goz read <url> [--format FORMAT] [--timeout N]
+
+    Args:
+        args: Command arguments
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="goz read")
+    parser.add_argument("url", help="URL to read")
+    parser.add_argument("--format", "-f", choices=["markdown", "text"],
+                        default="markdown", help="Output format")
+    parser.add_argument("--timeout", "-t", type=int, help="Timeout in seconds")
+
+    parsed = parser.parse_args(args)
+
+    from goz.api.reader import ReaderClient
+    from goz.config import load_config
+
+    config = load_config()
+    client = ReaderClient(config=config)
+
+    try:
+        result = await client.read(
+            url=parsed.url,
+            format=parsed.format,
+            timeout=parsed.timeout,
+        )
+        print(result.content)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_config(args: list[str]) -> None:
     """Handle the `goz config` command.
 
@@ -99,6 +181,10 @@ def main() -> None:
         cmd_config(args.args)
     elif args.command == "vision":
         asyncio.run(cmd_vision(args.args))
+    elif args.command == "search":
+        asyncio.run(cmd_search(args.args))
+    elif args.command == "read":
+        asyncio.run(cmd_read(args.args))
     else:
         print(f"Command '{args.command}' not yet implemented")
 
