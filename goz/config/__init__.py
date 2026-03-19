@@ -132,6 +132,71 @@ class ConfigManager:
         print(f"zai_token: {masked_token}")
         print(f"zai_base_url: {config.zai_base_url}")
         print(f"timeout: {config.timeout}")
+        print(f"vision_model: {config.vision_model}")
+        print(f"chat_model: {config.chat_model}")
+        print(f"temperature: {config.temperature}")
+        print(f"top_p: {config.top_p}")
+        print(f"max_tokens: {config.max_tokens}")
+
+    def get_config(self, key: str) -> None:
+        """Get and display a single configuration value.
+
+        Args:
+            key: Configuration key to retrieve
+
+        Raises:
+            ValueError: If key is invalid
+        """
+        config = self.load()
+
+        valid_keys = {
+            "zai_token", "zai_base_url", "timeout",
+            "vision_model", "chat_model", "temperature", "top_p", "max_tokens"
+        }
+
+        if key not in valid_keys:
+            raise ValueError(f"Invalid config key: {key}. Valid keys: {', '.join(sorted(valid_keys))}")
+
+        value = getattr(config, key)
+
+        # Mask token if requested
+        if key == "zai_token":
+            value = self._mask_token(value)
+
+        print(value)
+
+    def list_keys(self) -> None:
+        """List all available configuration keys with descriptions."""
+        descriptions = [
+            ("zai_token", "Z.AI API authentication token (required)"),
+            ("zai_base_url", f"Base URL for Z.AI API (default: {DEFAULT_ZAI_BASE_URL})"),
+            ("timeout", f"Request timeout in seconds (default: {DEFAULT_TIMEOUT_SECONDS})"),
+            ("vision_model", f"Model for image/video analysis (default: {DEFAULT_VISION_MODEL})"),
+            ("chat_model", f"Model for chat requests (default: {DEFAULT_CHAT_MODEL})"),
+            ("temperature", f"Generation temperature (default: {DEFAULT_TEMPERATURE})"),
+            ("top_p", f"Generation top_p sampling (default: {DEFAULT_TOP_P})"),
+            ("max_tokens", f"Maximum response tokens (default: {DEFAULT_MAX_TOKENS})"),
+        ]
+
+        print("Available configuration keys:")
+        for key, desc in descriptions:
+            print(f"  {key:18s} - {desc}")
+
+    def edit_config(self) -> None:
+        """Open config file in the default editor."""
+        import os
+        import subprocess
+
+        editor = os.environ.get("EDITOR", os.environ.get("VISUAL", "vi"))
+
+        try:
+            subprocess.call([editor, str(self.config_file)])
+        except FileNotFoundError:
+            # Try notepad on Windows as fallback
+            if os.name == "nt":
+                subprocess.call(["notepad", str(self.config_file)])
+            else:
+                raise FileNotFoundError(f"Editor '{editor}' not found. Set EDITOR environment variable.")
 
     def _mask_token(self, token: str) -> str:
         """Mask token showing only last 4 characters.
