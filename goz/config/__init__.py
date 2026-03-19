@@ -14,6 +14,7 @@ DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.json"
 
 # Default values (Acceptance Criteria 2)
 DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/anthropic"
+DEFAULT_CODING_BASE_URL = "https://api.z.ai/api/coding/paas/v4"
 DEFAULT_TIMEOUT = 300000  # 5 minutes in milliseconds
 DEFAULT_TIMEOUT_SECONDS = 120  # For Python clients (seconds)
 
@@ -32,7 +33,8 @@ class Config(BaseModel):
 
     Fields:
         zai_token: Z.AI auth token for API access (like apiKey in zai-cli)
-        zai_base_url: Base URL for API (like baseUrl in zai-cli)
+        zai_base_url: Base URL for Anthropic API (vision/chat)
+        coding_base_url: Base URL for Coding API (search/read/repo)
         timeout: Request timeout in seconds
         vision_model: Model for image/video analysis
         chat_model: Model for chat/text requests
@@ -43,6 +45,7 @@ class Config(BaseModel):
 
     zai_token: str
     zai_base_url: str = DEFAULT_ZAI_BASE_URL
+    coding_base_url: str = DEFAULT_CODING_BASE_URL
     timeout: int = Field(default=DEFAULT_TIMEOUT_SECONDS, gt=0)
     vision_model: str = DEFAULT_VISION_MODEL
     chat_model: str = DEFAULT_CHAT_MODEL
@@ -131,6 +134,7 @@ class ConfigManager:
 
         print(f"zai_token: {masked_token}")
         print(f"zai_base_url: {config.zai_base_url}")
+        print(f"coding_base_url: {config.coding_base_url}")
         print(f"timeout: {config.timeout}")
         print(f"vision_model: {config.vision_model}")
         print(f"chat_model: {config.chat_model}")
@@ -150,7 +154,7 @@ class ConfigManager:
         config = self.load()
 
         valid_keys = {
-            "zai_token", "zai_base_url", "timeout",
+            "zai_token", "zai_base_url", "coding_base_url", "timeout",
             "vision_model", "chat_model", "temperature", "top_p", "max_tokens"
         }
 
@@ -169,7 +173,8 @@ class ConfigManager:
         """List all available configuration keys with descriptions."""
         descriptions = [
             ("zai_token", "Z.AI API authentication token (required)"),
-            ("zai_base_url", f"Base URL for Z.AI API (default: {DEFAULT_ZAI_BASE_URL})"),
+            ("zai_base_url", f"Base URL for Anthropic API/vision/chat (default: {DEFAULT_ZAI_BASE_URL})"),
+            ("coding_base_url", f"Base URL for Search/Read/Repo APIs (default: {DEFAULT_CODING_BASE_URL})"),
             ("timeout", f"Request timeout in seconds (default: {DEFAULT_TIMEOUT_SECONDS})"),
             ("vision_model", f"Model for image/video analysis (default: {DEFAULT_VISION_MODEL})"),
             ("chat_model", f"Model for chat requests (default: {DEFAULT_CHAT_MODEL})"),
@@ -223,7 +228,7 @@ class ConfigManager:
         """
         config = self.load()
 
-        valid_keys = ["zai_token", "zai_base_url", "timeout", "vision_model", "ocr_model", "chat_model"]
+        valid_keys = ["zai_token", "zai_base_url", "coding_base_url", "timeout", "vision_model", "chat_model"]
 
         if key not in valid_keys:
             raise ValueError(f"Invalid config key: {key}. Valid keys: {', '.join(valid_keys)}")

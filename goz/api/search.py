@@ -26,10 +26,6 @@ DEFAULT_COUNT = None
 RETRY_COUNT = 0
 BASE_DELAY = 1.0
 
-# Direct HTTP endpoint (uses coding/paas base URL)
-CODING_PAAS_BASE = "https://api.z.ai/api/coding/paas/v4"
-SEARCH_API_ENDPOINT = f"{CODING_PAAS_BASE}/web_search"
-
 
 # Logger for search requests
 logger = logging.getLogger(__name__)
@@ -127,6 +123,7 @@ class SearchClient:
             "Accept": "application/json",
         }
         timeout = self.config.timeout
+        endpoint = f"{self.config.coding_base_url}/web_search"
 
         last_error = None
 
@@ -134,9 +131,9 @@ class SearchClient:
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     if self.enable_logging:
-                        logger.info(f"-> POST {SEARCH_API_ENDPOINT}")
+                        logger.info(f"-> POST {endpoint}")
 
-                    response = await client.post(SEARCH_API_ENDPOINT, json=body, headers=headers)
+                    response = await client.post(endpoint, json=body, headers=headers)
 
                     if self.enable_logging:
                         logger.info(

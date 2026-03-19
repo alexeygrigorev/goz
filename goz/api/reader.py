@@ -33,10 +33,6 @@ DEFAULT_TIMEOUT = 20
 RETRY_COUNT = 0
 BASE_DELAY = 1.0
 
-# Direct HTTP endpoint (uses coding/paas base URL)
-CODING_PAAS_BASE = "https://api.z.ai/api/coding/paas/v4"
-READER_API_ENDPOINT = f"{CODING_PAAS_BASE}/reader"
-
 
 # Logger for reader requests
 logger = logging.getLogger(__name__)
@@ -135,6 +131,7 @@ class ReaderClient:
             "Accept": "application/json",
         }
         timeout = self.config.timeout
+        endpoint = f"{self.config.coding_base_url}/reader"
 
         last_error = None
 
@@ -142,9 +139,9 @@ class ReaderClient:
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     if self.enable_logging:
-                        logger.info(f"-> POST {READER_API_ENDPOINT}")
+                        logger.info(f"-> POST {endpoint}")
 
-                    response = await client.post(READER_API_ENDPOINT, json=body, headers=headers)
+                    response = await client.post(endpoint, json=body, headers=headers)
 
                     if self.enable_logging:
                         logger.info(
