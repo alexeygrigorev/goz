@@ -1,6 +1,5 @@
 """E2E tests for configuration management (Issue 02)."""
 import json
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -84,7 +83,7 @@ class TestFirstRunCreatesConfig:
         assert not config_dir.exists()
 
         with patch("goz.config.DEFAULT_CONFIG_FILE", config_dir / "config.json"):
-            manager = ConfigManager()
+            ConfigManager()
             assert config_dir.exists()
 
     def test_first_run_creates_config_file_with_token(self, tmp_path):
@@ -95,7 +94,7 @@ class TestFirstRunCreatesConfig:
             with patch("builtins.input", return_value="sk-ant-test1234567890abcdef"):
                 manager = ConfigManager()
                 # Note: ConfigManager() doesn't create file on init, load() does
-                config = manager.load()
+                manager.load()
                 assert config_file.exists()
 
                 with open(config_file) as f:
