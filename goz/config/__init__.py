@@ -19,7 +19,7 @@ DEFAULT_TIMEOUT_SECONDS = 120  # For Python clients (seconds)
 
 # Default model names
 DEFAULT_VISION_MODEL = "glm-4.6v"
-DEFAULT_CHAT_MODEL = "glm-4.7"
+DEFAULT_CHAT_MODEL = "glm-5-turbo"
 
 # Generation parameters
 DEFAULT_TEMPERATURE = 0.8
