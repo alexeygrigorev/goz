@@ -1,9 +1,29 @@
 """Main entry point for the goz CLI."""
 
 import asyncio
+import itertools
 import sys
+import threading
+import time
 
 from goz import __version__
+
+
+def _show_thinking_animation(stop_event: threading.Event) -> None:
+    """Show a "thinking" animation in a separate thread.
+
+    Args:
+        stop_event: Threading event to stop the animation
+    """
+    animation = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    for frame in itertools.cycle(animation):
+        if stop_event.is_set():
+            break
+        # Print the animation frame with carriage return to overwrite
+        print(f"\r{frame} Thinking...", end="", flush=True)
+        time.sleep(0.1)
+    # Clear the animation line when done
+    print("\r" + " " * 20 + "\r", end="", flush=True)
 
 
 async def cmd_vision(args: list[str]) -> None:
@@ -221,9 +241,30 @@ File constraints:
                 result = await client.analyze(source1, effective_prompt)
                 print(result)
             else:
+                # Show "thinking" animation while waiting for first chunk
+                import threading
+                stop_animation = threading.Event()
+                animation_thread = threading.Thread(
+                    target=_show_thinking_animation,
+                    args=(stop_animation,),
+                    daemon=True
+                )
+                animation_thread.start()
+
+                # Stream response
+                first_chunk = True
                 async for chunk in client.analyze_stream(source1, effective_prompt):
+                    if first_chunk:
+                        # Stop animation on first chunk
+                        stop_animation.set()
+                        animation_thread.join(timeout=0.2)
+                        first_chunk = False
                     print(chunk, end="", flush=True)
                 print()  # New line after streaming completes
+                if first_chunk:
+                    # In case no chunks were received
+                    stop_animation.set()
+                    animation_thread.join(timeout=0.2)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

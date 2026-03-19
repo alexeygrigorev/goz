@@ -13,13 +13,13 @@ DEFAULT_CONFIG_DIR = Path.home() / ".config" / "goz"
 DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.json"
 
 # Default values (Acceptance Criteria 2)
-DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4"
+DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/anthropic"
 DEFAULT_TIMEOUT = 300000  # 5 minutes in milliseconds
 DEFAULT_TIMEOUT_SECONDS = 120  # For Python clients (seconds)
 
 # Default model names
 DEFAULT_VISION_MODEL = "glm-4.6v"
-DEFAULT_CHAT_MODEL = "glm-5-turbo"
+DEFAULT_CHAT_MODEL = "glm-4.7"
 
 # Generation parameters
 DEFAULT_TEMPERATURE = 0.8
