@@ -5,8 +5,6 @@ results display, and error handling.
 """
 from __future__ import annotations
 
-import asyncio
-from typing import Any
 
 from textual.screen import Screen
 from textual.widgets import (
@@ -17,7 +15,7 @@ from textual import on
 
 from goz.api.search import SearchClient, SearchResult
 from goz.api.errors import (
-    ZaiError, ValidationError, AuthError, ApiError,
+    ValidationError, AuthError, ApiError,
     NetworkError, TimeoutError
 )
 from goz.tui.widgets.loading import LoadingSpinner
@@ -322,8 +320,8 @@ class SearchScreen(Screen[None]):
             self.show_error(f"Authentication failed. Check your API key.\n\n{e.message}")
         except NetworkError as e:
             self.show_error(f"Network error: {e.message}", retry=True)
-        except TimeoutError as e:
-            self.show_error(f"Request timed out. Please try again.", retry=True)
+        except TimeoutError:
+            self.show_error("Request timed out. Please try again.", retry=True)
         except ApiError as e:
             self.show_error(f"API Error: {e.message}", retry=True)
         except Exception as e:

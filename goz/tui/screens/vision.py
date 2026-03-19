@@ -1,25 +1,18 @@
 """Vision screen for analyzing images and videos."""
 from __future__ import annotations
 
-import asyncio
 import time
-from pathlib import Path
-from typing import Any
 
 from textual.screen import Screen
 from textual.widgets import Input, Label, Select, Button, Static, TextArea
-from textual.containers import Vertical, Horizontal, Container
-from textual import on
-from textual.message import Message
+from textual.containers import Vertical, Horizontal
 
 from goz.api.vision import VisionClient
 from goz.api.image import (
     validate_image_source,
     validate_video_source,
-    VIDEO_EXTENSIONS,
 )
 from goz.api.errors import (
-    ZaiError,
     ValidationError,
     AuthError,
     ApiError,
@@ -567,10 +560,6 @@ Press F1 or Esc to close
                 validate_image_source(source2)
                 # For diff, we need to compare two images
                 # Build a prompt that asks for comparison
-                diff_prompt = (
-                    f"{effective_prompt}\n\n"
-                    f"I will provide two images. Compare them and identify differences."
-                )
                 # First analyze expected
                 result1 = await client.analyze(source1, "Describe this image in detail.")
                 # Then analyze actual
@@ -587,7 +576,7 @@ Press F1 or Esc to close
                 result = await client.analyze(source1, effective_prompt)
 
             # Calculate processing time
-            elapsed = time.time() - start_time
+            time.time() - start_time
 
             # Show results
             from goz.tui.screens.result import ResultScreen

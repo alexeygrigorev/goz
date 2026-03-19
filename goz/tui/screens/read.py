@@ -13,11 +13,10 @@ from textual.widgets import (
     Input, Label, Select, Button, Static, Header, Footer, Checkbox
 )
 from textual.containers import Vertical, Horizontal, Container
-from textual import on
 
 from goz.api.reader import ReaderClient
 from goz.api.errors import (
-    ZaiError, ValidationError, AuthError, ApiError,
+    ValidationError, AuthError, ApiError,
     NetworkError, TimeoutError
 )
 from goz.tui.widgets.loading import LoadingSpinner
@@ -342,7 +341,7 @@ class ReadScreen(Screen[None]):
             )
         except NetworkError as e:
             self.show_error(f"Network error: {e.message}", retry=True)
-        except TimeoutError as e:
+        except TimeoutError:
             self.show_error(
                 f"Request timed out after {self.timeout} seconds",
                 help_text="Try increasing the timeout or check your connection",

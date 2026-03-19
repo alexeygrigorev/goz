@@ -1,7 +1,5 @@
 """Unit tests for image/video processing utilities (Issue 04)."""
 import base64
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 

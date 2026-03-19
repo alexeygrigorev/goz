@@ -6,10 +6,8 @@ and navigation for the goz TUI.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
-from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header
+from textual.app import App
 
 from goz.tui.screens.main import MainMenuScreen
 from goz.tui.screens.vision import VisionScreen

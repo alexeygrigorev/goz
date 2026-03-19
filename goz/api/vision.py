@@ -169,7 +169,7 @@ class VisionClient:
                     error_msg = self._parse_error_message(response)
                     raise ApiError(error_msg, statusCode=response.status_code)
 
-            except httpx.TimeoutException as e:
+            except httpx.TimeoutException:
                 timeout_ms = int(timeout * 1000)
                 last_error = TimeoutError(timeoutMs=timeout_ms)
                 if self.enable_logging:
@@ -433,7 +433,6 @@ class VisionClient:
                             if "choices" in chunk and chunk["choices"]:
                                 delta = chunk["choices"][0].get("delta", {})
                                 content = delta.get("content", "")
-                                reasoning = delta.get("reasoning_content", "")
                                 if content:
                                     yield content
                         except json.JSONDecodeError:

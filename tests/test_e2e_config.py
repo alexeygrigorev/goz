@@ -16,18 +16,18 @@ class TestConfigModel:
         """Test Config model accepts valid data."""
         config = Config(
             zai_token="sk-ant-test1234567890abcdef",
-            zai_base_url="https://api.z.ai/api/anthropic",
+            zai_base_url="https://api.z.ai/api/coding/paas/v4",
             timeout=120,
         )
         assert config.zai_token == "sk-ant-test1234567890abcdef"
-        assert config.zai_base_url == "https://api.z.ai/api/anthropic"
+        assert config.zai_base_url == "https://api.z.ai/api/coding/paas/v4"
         assert config.timeout == 120
 
     def test_config_model_with_defaults(self):
         """Test Config model uses default values."""
         config = Config(zai_token="sk-ant-test1234567890abcdef")
         assert config.zai_token == "sk-ant-test1234567890abcdef"
-        assert config.zai_base_url == "https://api.z.ai/api/anthropic"
+        assert config.zai_base_url == "https://api.z.ai/api/coding/paas/v4"
         assert config.timeout == 120
 
     def test_config_model_validation_error(self):
@@ -44,20 +44,20 @@ class TestConfigModel:
         """Test Config model serializes to JSON correctly."""
         config = Config(
             zai_token="sk-ant-test1234567890abcdef",
-            zai_base_url="https://api.z.ai/api/anthropic",
+            zai_base_url="https://api.z.ai/api/coding/paas/v4",
             timeout=120,
         )
         data = json.loads(config.model_dump_json())
         assert data["zai_token"] == "sk-ant-test1234567890abcdef"
-        assert data["zai_base_url"] == "https://api.z.ai/api/anthropic"
+        assert data["zai_base_url"] == "https://api.z.ai/api/coding/paas/v4"
         assert data["timeout"] == 120
 
     def test_config_model_deserialization(self):
         """Test Config model deserializes from JSON correctly."""
-        json_str = '{"zai_token": "sk-ant-test1234567890abcdef", "zai_base_url": "https://api.z.ai/api/anthropic", "timeout": 120}'
+        json_str = '{"zai_token": "sk-ant-test1234567890abcdef", "zai_base_url": "https://api.z.ai/api/coding/paas/v4", "timeout": 120}'
         config = Config.model_validate_json(json_str)
         assert config.zai_token == "sk-ant-test1234567890abcdef"
-        assert config.zai_base_url == "https://api.z.ai/api/anthropic"
+        assert config.zai_base_url == "https://api.z.ai/api/coding/paas/v4"
         assert config.timeout == 120
 
 
@@ -100,7 +100,7 @@ class TestFirstRunCreatesConfig:
                 with open(config_file) as f:
                     data = json.load(f)
                 assert data["zai_token"] == "sk-ant-test1234567890abcdef"
-                assert data["zai_base_url"] == "https://api.z.ai/api/anthropic"
+                assert data["zai_base_url"] == "https://api.z.ai/api/coding/paas/v4"
                 assert data["timeout"] == 120
 
 
@@ -116,7 +116,7 @@ class TestSilentLoading:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-existingtoken123",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -142,7 +142,7 @@ class TestConfigCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-test1234567890abcdef",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -154,7 +154,7 @@ class TestConfigCommand:
             assert "****cdef" in captured.out  # Last 4 chars
             assert "sk-ant-test1234567890abcdef" not in captured.out  # Full token not shown
             assert "zai_base_url" in captured.out
-            assert "https://api.z.ai/api/anthropic" in captured.out
+            assert "https://api.z.ai/api/coding/paas/v4" in captured.out
             assert "timeout" in captured.out
             assert "120" in captured.out
 
@@ -166,7 +166,7 @@ class TestConfigCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -190,7 +190,7 @@ class TestConfigSetCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-oldtoken123",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -201,7 +201,7 @@ class TestConfigSetCommand:
             with open(config_file) as f:
                 data = json.load(f)
             assert data["zai_token"] == "sk-ant-newtoken456"
-            assert data["zai_base_url"] == "https://api.z.ai/api/anthropic"
+            assert data["zai_base_url"] == "https://api.z.ai/api/coding/paas/v4"
             assert data["timeout"] == 120  # Other fields preserved
 
     def test_config_set_updates_base_url(self, tmp_path):
@@ -212,7 +212,7 @@ class TestConfigSetCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-test123",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -232,7 +232,7 @@ class TestConfigSetCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-test123",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -289,7 +289,7 @@ class TestTokenNeverExposed:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": full_token,
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -313,7 +313,7 @@ class TestCLIConfigCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-test1234567890abcdef",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -326,7 +326,7 @@ class TestCLIConfigCommand:
             captured = capsys.readouterr()
             assert "****cdef" in captured.out
             assert "sk-ant-test1234567890abcdef" not in captured.out
-            assert "zai_base_url: https://api.z.ai/api/anthropic" in captured.out
+            assert "zai_base_url: https://api.z.ai/api/coding/paas/v4" in captured.out
             assert "timeout: 120" in captured.out
 
     def test_goz_config_set_updates_token(self, tmp_path, capsys):
@@ -337,7 +337,7 @@ class TestCLIConfigCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-oldtoken123",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 
@@ -362,7 +362,7 @@ class TestCLIConfigCommand:
         with open(config_file, "w") as f:
             json.dump({
                 "zai_token": "sk-ant-test123",
-                "zai_base_url": "https://api.z.ai/api/anthropic",
+                "zai_base_url": "https://api.z.ai/api/coding/paas/v4",
                 "timeout": 120,
             }, f)
 

@@ -1,13 +1,11 @@
 """Result screen for displaying output."""
 from __future__ import annotations
 
-from typing import Any
 
 from textual.screen import Screen
 from textual.widgets import Static, Button
-from textual.containers import Vertical, Horizontal
+from textual.containers import Horizontal
 from textual.widgets import TextArea
-from textual import on
 
 
 class ResultScreen(Screen[None]):

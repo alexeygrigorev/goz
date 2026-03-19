@@ -1,16 +1,13 @@
 """Doctor screen for checking API connection."""
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from textual.screen import Screen
 from textual.widgets import Static, Button
 from textual.containers import Vertical, Horizontal
-from textual import on
 
-from goz.config import ConfigManager, DEFAULT_CONFIG_FILE, load_config
-from goz.api.errors import ZaiError
+from goz.config import DEFAULT_CONFIG_FILE, load_config
 
 try:
     import httpx
@@ -137,7 +134,7 @@ class DoctorScreen(Screen[None]):
             config = load_config()
             if HTTPX_AVAILABLE:
                 async with httpx.AsyncClient(timeout=5.0) as client:
-                    response = await client.get(config.zai_base_url)
+                    await client.get(config.zai_base_url)
                     # Any response means the URL is reachable
                     self.add_check(True, "Base URL", f"Reachable ({config.zai_base_url})")
             else:

@@ -1,7 +1,7 @@
 # Issue 09: Search and Read Commands in TUI
 
 ## Status
-.groomed
+.done
 
 ## Description
 Add interactive search and read command screens to the goz TUI. These screens will provide user-friendly interfaces for web search and web page reading functionality, building on the already-implemented SearchClient and ReaderClient APIs.
@@ -387,3 +387,11 @@ from goz.api.errors import AuthError, ApiError, NetworkError, TimeoutError, Vali
 - `C:\Users\alexe\git\z\goz\goz\api\search.py` - Python Search API
 - `C:\Users\alexe\git\z\goz\goz\api\reader.py` - Python Reader API
 - `C:\Users\alexe\git\z\docs\spec.md` - TUI specification
+
+## Log
+
+### [PM] 2026-03-19
+- Reviewed groomed specification
+- All 270 tests pass
+- Linting passes (ruff check goz/)
+- Issue accepted and moved to .done.md

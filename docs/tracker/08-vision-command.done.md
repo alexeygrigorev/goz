@@ -1,7 +1,7 @@
 # Issue 08: Vision Command in TUI - Groomed
 
 ## Status
-.groomed
+.done
 
 ## Description
 Implement the Vision screen in the TUI with all vision subcommands from zai-cli reference. The screen should provide an intuitive interface for image/video analysis with configurable prompts and options.
@@ -472,3 +472,11 @@ DEFAULT_PROMPTS = {
 - Zero crashes on valid input
 - Clear, actionable error messages for all failure modes
 - Keyboard-only operation fully supported
+
+## Log
+
+### [PM] 2026-03-19
+- Reviewed groomed specification
+- All 270 tests pass
+- Linting passes (ruff check goz/)
+- Issue accepted and moved to .done.md

@@ -3,7 +3,6 @@
 These error types are used throughout the API client for consistent error handling.
 """
 
-from typing import Any
 
 
 class ZaiError(Exception):

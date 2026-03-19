@@ -10,7 +10,6 @@ from typing import Any, Callable
 from textual.widget import Widget
 from textual.widgets import Static, Button
 from textual.containers import Horizontal, Vertical
-from textual import on
 
 
 class ErrorDisplay(Widget):

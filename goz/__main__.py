@@ -162,12 +162,7 @@ def cmd_doctor(args: list[str]) -> None:
     import asyncio
 
     async def run_doctor() -> None:
-        from goz.api.vision import VisionClient
-        from goz.api.search import SearchClient
-        from goz.api.reader import ReaderClient
         from goz.config import load_config, DEFAULT_CONFIG_FILE
-        from pathlib import Path
-        import sys
 
         checks_passed = 0
         checks_failed = 0
@@ -179,7 +174,7 @@ def cmd_doctor(args: list[str]) -> None:
             checks_passed += 1
         else:
             print(f"  [FAIL] Config file not found at {DEFAULT_CONFIG_FILE}")
-            print(f"         Run 'goz config' to set up.")
+            print("         Run 'goz config' to set up.")
             checks_failed += 1
 
         # Check 2: Load config and validate token
@@ -190,7 +185,7 @@ def cmd_doctor(args: list[str]) -> None:
                 print(f"  [PASS] API token present ({masked})")
                 checks_passed += 1
             else:
-                print(f"  [FAIL] API token not set")
+                print("  [FAIL] API token not set")
                 checks_failed += 1
         except Exception as e:
             print(f"  [FAIL] Error loading config: {e}")
@@ -201,7 +196,7 @@ def cmd_doctor(args: list[str]) -> None:
         try:
             import httpx
             async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(config.zai_base_url)
+                await client.get(config.zai_base_url)
                 print(f"  [PASS] Base URL reachable ({config.zai_base_url})")
                 checks_passed += 1
         except (httpx.ConnectError, httpx.NetworkError) as e:

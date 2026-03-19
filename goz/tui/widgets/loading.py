@@ -10,7 +10,6 @@ from typing import Any
 
 from textual.widget import Widget
 from textual.reactive import reactive
-from textual import log
 
 
 class LoadingSpinner(Widget):

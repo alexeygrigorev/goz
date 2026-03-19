@@ -1,7 +1,4 @@
 """E2E tests for Vision API (Issue 04)."""
-import asyncio
-import base64
-from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,10 +7,7 @@ import httpx
 
 from goz.api.vision import (
     VisionClient,
-    build_vision_message,
-    parse_vision_response,
 )
-from goz.config import Config
 
 
 class MockAsyncClient:

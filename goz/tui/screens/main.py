@@ -1,11 +1,11 @@
 """Main menu screen for goz TUI."""
 from __future__ import annotations
 
+from typing import Any
+
 from textual.screen import Screen
 from textual.widgets import Button, Static
-from textual.containers import Vertical, Center, Horizontal
-from textual import on
-from textual.app import App
+from textual.containers import Vertical
 
 
 class MenuButton(Button):

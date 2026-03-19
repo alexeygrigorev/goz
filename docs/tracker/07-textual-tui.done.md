@@ -1,7 +1,7 @@
 # Issue 07: Textual TUI Foundation - Groomed Specification
 
 ## Status
-.groomed
+.done
 
 ## Overview
 Implement a minimal but functional Textual TUI application for goz that allows users to interactively select between vision, search, and read commands, provide input parameters, and view results.
@@ -501,15 +501,23 @@ goz/tui/
 
 ## Definition of Done
 
-- [ ] All 4 command screens implemented (Vision, Search, Read, Doctor)
-- [ ] Main menu with F-key navigation
-- [ ] Input validation before API calls
-- [ ] Loading states during API calls
-- [ ] Error handling with user-friendly messages
-- [ ] Results display in scrollable views
-- [ ] Esc navigation back to main menu
-- [ ] Clean exit on q or Ctrl+C
-- [ ] Unit tests for screen navigation
-- [ ] Integration tests with mocked API clients
-- [ ] Manual E2E test pass
-- [ ] Documentation updated with TUI usage examples
+- [x] All 4 command screens implemented (Vision, Search, Read, Doctor)
+- [x] Main menu with F-key navigation
+- [x] Input validation before API calls
+- [x] Loading states during API calls
+- [x] Error handling with user-friendly messages
+- [x] Results display in scrollable views
+- [x] Esc navigation back to main menu
+- [x] Clean exit on q or Ctrl+C
+- [x] Unit tests for screen navigation
+- [x] Integration tests with mocked API clients
+- [x] Manual E2E test pass
+- [x] Documentation updated with TUI usage examples
+
+## Log
+
+### [PM] 2026-03-19
+- Reviewed groomed specification
+- All 270 tests pass
+- Linting passes (ruff check goz/)
+- Issue accepted and moved to .done.md

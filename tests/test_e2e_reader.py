@@ -1,11 +1,10 @@
 """E2E tests for Reader API Implementation (Issue 06)."""
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import httpx
 
-from goz.api import ZaiError, AuthError, ApiError, NetworkError, TimeoutError
+from goz.api import AuthError, ApiError, NetworkError, TimeoutError
 from goz.config import Config
 
 # Import ReaderClient and ReaderResult separately to allow error types to be tested first
@@ -61,7 +60,6 @@ class TestReaderClientImport:
         """Test goz.api exports ReaderClient and ReaderResult."""
         from goz import api
         assert hasattr(api, "__all__")
-        expected = ["ZaiApiClient", "ZaiError", "AuthError", "ApiError", "NetworkError", "TimeoutError"]
         # Should include ReaderClient and ReaderResult
         assert "ReaderClient" in api.__all__
         assert "ReaderResult" in api.__all__
@@ -251,7 +249,7 @@ class TestFormatSelection:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com")
+            await client.read("https://example.com")
 
         # Check the request body included return_format: markdown
         call_args = mock_client.post.call_args
@@ -285,7 +283,7 @@ class TestFormatSelection:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com", format="markdown")
+            await client.read("https://example.com", format="markdown")
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -318,7 +316,7 @@ class TestFormatSelection:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com", format="text")
+            await client.read("https://example.com", format="text")
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -351,7 +349,7 @@ class TestFormatSelection:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com", format="MARKDOWN")
+            await client.read("https://example.com", format="MARKDOWN")
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -405,7 +403,7 @@ class TestTimeoutConfiguration:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com")
+            await client.read("https://example.com")
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -438,7 +436,7 @@ class TestTimeoutConfiguration:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com", timeout=5)
+            await client.read("https://example.com", timeout=5)
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -523,7 +521,7 @@ class TestCacheControl:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com")
+            await client.read("https://example.com")
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -556,7 +554,7 @@ class TestCacheControl:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com", no_cache=True)
+            await client.read("https://example.com", no_cache=True)
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -593,7 +591,7 @@ class TestImageRetention:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com")
+            await client.read("https://example.com")
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -626,7 +624,7 @@ class TestImageRetention:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com", retain_images=False)
+            await client.read("https://example.com", retain_images=False)
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -663,7 +661,7 @@ class TestLinksSummary:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com")
+            await client.read("https://example.com")
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -700,7 +698,7 @@ class TestLinksSummary:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com", with_links_summary=True)
+            await client.read("https://example.com", with_links_summary=True)
 
         call_args = mock_client.post.call_args
         body = call_args.kwargs.get("json", {})
@@ -801,7 +799,7 @@ class TestEdgeCases:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com/path")
+            await client.read("https://example.com/path")
 
     @pytest.mark.asyncio
     async def test_404_response_raises_api_error(self):
@@ -881,7 +879,7 @@ class TestEdgeCases:
         mock_client.__aexit__ = aexit
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await client.read("https://example.com")
+            await client.read("https://example.com")
 
         call_args = mock_client.post.call_args
         url = call_args.args[0]

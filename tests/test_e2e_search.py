@@ -8,13 +8,11 @@ import httpx
 from goz.api.search import (
     SearchClient,
     SearchResult,
-    RecencyFilter,
     validate_search_params,
     build_search_request_body,
     parse_search_response,
     limit_results,
 )
-from goz.config import Config
 
 
 class MockAsyncClient:
