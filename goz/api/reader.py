@@ -1,7 +1,7 @@
 """Reader API client for Z.AI.
 
 This module provides the ReaderClient class for fetching and converting
-web pages to markdown/text format using the Z.AI Web Reader API.
+web pages to markdown/text format using the Z.AI Web Reader API via direct HTTP.
 """
 from __future__ import annotations
 
@@ -23,15 +23,23 @@ from goz.api.errors import (
 from goz.config import Config, load_config
 
 
-# Logger for reader API requests
-logger = logging.getLogger(__name__)
+# Type definitions
+ReturnFormat = Literal["markdown", "text"]
 
 
-# Default timeout matching reference implementation
+# Constants
+VALID_FORMATS = ["markdown", "text"]
 DEFAULT_TIMEOUT = 20
+RETRY_COUNT = 0
+BASE_DELAY = 1.0
 
-# Valid format values
-VALID_FORMATS = ("markdown", "text")
+# Direct HTTP endpoint (uses coding/paas base URL)
+CODING_PAAS_BASE = "https://api.z.ai/api/coding/paas/v4"
+READER_API_ENDPOINT = f"{CODING_PAAS_BASE}/reader"
+
+
+# Logger for reader requests
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -49,117 +57,173 @@ class ReaderResult:
     url: str
     description: str | None = None
 
+    def __repr__(self) -> str:
+        """Return readable string representation."""
+        return f"ReaderResult(title={self.title!r}, url={self.url!r})"
 
-def validate_url(url: str) -> str:
-    """Validate URL format.
+
+def validate_reader_params(
+    url: str,
+    format: ReturnFormat | None = None,
+    timeout: int | None = None,
+) -> None:
+    """Validate reader parameters.
 
     Args:
-        url: URL to validate
-
-    Returns:
-        The validated URL
+        url: URL to fetch
+        format: Optional return format
+        timeout: Optional timeout value
 
     Raises:
-        ValidationError: If URL format is invalid
+        ValueError: If any parameter is invalid
     """
     if not url or not url.strip():
-        raise ValidationError("URL cannot be empty")
+        raise ValueError("URL cannot be empty")
 
     url = url.strip()
-
     if not (url.startswith("http://") or url.startswith("https://")):
-        raise ValidationError(
-            f"Invalid URL protocol: URL must start with http:// or https://. "
-            f"Got: {url[:50]}{'...' if len(url) > 50 else ''}"
+        raise ValueError(
+            f"Invalid URL protocol: URL must start with http:// or https://. Got: {url[:50]}..."
         )
 
-    return url
-
-
-def validate_format(format_value: str) -> str:
-    """Validate and normalize format value.
-
-    Args:
-        format_value: Format string to validate
-
-    Returns:
-        Normalized format value (lowercase)
-
-    Raises:
-        ValidationError: If format is invalid
-    """
-    if not isinstance(format_value, str):
-        raise ValidationError(
-            f"Invalid format: must be a string. Got: {type(format_value).__name__}"
+    if format is not None and format not in VALID_FORMATS:
+        raise ValueError(
+            f"Invalid format: {format}. Valid options: {', '.join(VALID_FORMATS)}"
         )
 
-    normalized = format_value.lower().strip()
-
-    if normalized not in VALID_FORMATS:
-        raise ValidationError(
-            f"Invalid format: '{format_value}'. Must be one of: {', '.join(VALID_FORMATS)}"
-        )
-
-    return normalized
-
-
-def validate_timeout(timeout: int) -> int:
-    """Validate timeout value.
-
-    Args:
-        timeout: Timeout value in seconds
-
-    Returns:
-        Validated timeout value
-
-    Raises:
-        ValidationError: If timeout is invalid
-    """
-    if not isinstance(timeout, int):
-        raise ValidationError(
-            f"Invalid timeout: must be an integer. Got: {type(timeout).__name__}"
-        )
-
-    if timeout <= 0:
-        raise ValidationError(
-            f"Invalid timeout: must be a positive integer. Got: {timeout}"
-        )
-
-    return timeout
+    if timeout is not None and timeout <= 0:
+        raise ValueError("Timeout must be a positive integer")
 
 
 class ReaderClient:
-    """Client for Z.AI Web Reader API operations.
+    """Web reader client using Z.AI Web Reader API.
 
-    This client provides methods for fetching and parsing web page content
-    from URLs, with support for markdown/text conversion, cache control,
-    and various other options.
+    This client provides web page fetching functionality with support for
+    markdown/text conversion, cache control, and various other options.
     """
 
-    def __init__(
-        self,
-        config: Config | None = None,
-        enable_logging: bool | None = None,
-    ) -> None:
+    def __init__(self, config: Config | None = None) -> None:
         """Initialize ReaderClient.
 
         Args:
-            config: Optional Config object. If not provided, loads from default location.
-            enable_logging: Optional flag to enable logging. If not provided, checks
-                GOZ_API_LOG environment variable.
+            config: Optional config object. If not provided, loads from default location.
         """
         self.config = config or load_config()
+        self.enable_logging = False
 
-        # Enable logging if explicitly set or GOZ_API_LOG env var is set
-        import os
-        if enable_logging is None:
-            enable_logging = os.getenv("GOZ_API_LOG", "").lower() in ("1", "true", "yes")
-        self.enable_logging = enable_logging
+    async def _http_request(
+        self,
+        body: dict[str, Any],
+    ) -> Any:
+        """Make HTTP request to Reader API.
+
+        Args:
+            body: Request body
+
+        Returns:
+            Parsed response data
+
+        Raises:
+            AuthError: For 401/403 responses
+            ApiError: For other 4xx/5xx responses
+            NetworkError: For connection failures
+            TimeoutError: For request timeouts
+        """
+        headers = {
+            "Authorization": f"Bearer {self.config.zai_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        timeout = self.config.timeout
+
+        last_error = None
+
+        for attempt in range(RETRY_COUNT + 1):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    if self.enable_logging:
+                        logger.info(f"-> POST {READER_API_ENDPOINT}")
+
+                    response = await client.post(READER_API_ENDPOINT, json=body, headers=headers)
+
+                    if self.enable_logging:
+                        logger.info(
+                            f"<- {response.status_code} {len(response.content)} bytes"
+                        )
+
+                    # Handle successful response
+                    if response.status_code == 200:
+                        return response.json()
+
+                    # Handle auth errors - don't retry
+                    if response.status_code in (401, 403):
+                        error_msg = self._parse_error_message(response)
+                        raise AuthError(error_msg, statusCode=response.status_code)
+
+                    # Handle other errors
+                    error_msg = self._parse_error_message(response)
+                    raise ApiError(error_msg, statusCode=response.status_code)
+
+            except httpx.TimeoutException:
+                timeout_ms = int(timeout * 1000)
+                last_error = TimeoutError(timeoutMs=timeout_ms)
+                if self.enable_logging:
+                    logger.error(f"! {last_error.__class__.__name__}: {last_error}")
+
+            except (httpx.ConnectError, httpx.NetworkError) as e:
+                last_error = NetworkError(f"Network error: {e}")
+                if self.enable_logging:
+                    logger.error(f"! {last_error.__class__.__name__}: {last_error}")
+
+            except (AuthError, ApiError):
+                # Don't retry auth or API errors
+                raise
+
+            except Exception as e:
+                last_error = e
+                if self.enable_logging:
+                    logger.error(f"! Unexpected error: {e}")
+
+            # Retry with exponential backoff
+            if attempt < RETRY_COUNT:
+                delay = BASE_DELAY * (2 ** attempt)
+                if self.enable_logging:
+                    logger.info(f"Retrying in {delay}s... (attempt {attempt + 1}/{RETRY_COUNT})")
+                await asyncio.sleep(delay)
+
+        # All retries exhausted
+        if last_error:
+            raise last_error
+        raise ZaiError("Unknown error occurred")
+
+    def _parse_error_message(self, response: httpx.Response) -> str:
+        """Parse error message from API response.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            Error message string
+        """
+        try:
+            data = response.json()
+            if "error" in data:
+                error = data["error"]
+                if isinstance(error, dict):
+                    if "message" in error:
+                        return str(error["message"])
+                    return str(error)
+                return str(error)
+            if "message" in data:
+                return str(data["message"])
+        except Exception:
+            pass
+        return response.text
 
     async def read(
         self,
         url: str,
-        format: Literal["markdown", "text"] = "markdown",
+        format: ReturnFormat = "markdown",
         timeout: int = DEFAULT_TIMEOUT,
         no_cache: bool = False,
         retain_images: bool = True,
@@ -179,19 +243,16 @@ class ReaderClient:
             ReaderResult with parsed content
 
         Raises:
-            ValidationError: If URL format is invalid or parameters are invalid
-            AuthError: For authentication failures (401/403)
+            ValueError: If URL is empty or parameters are invalid
+            AuthError: For authentication failures
             ApiError: For other API errors
             NetworkError: For network failures
             TimeoutError: For request timeouts
         """
-        # Validate inputs
-        url = validate_url(url)
-        format = validate_format(format)
-        timeout = validate_timeout(timeout)
+        validate_reader_params(url, format, timeout)
 
         # Build request body
-        body = {
+        body: dict[str, Any] = {
             "url": url,
             "return_format": format,
             "timeout": timeout,
@@ -200,174 +261,23 @@ class ReaderClient:
             "with_links_summary": with_links_summary,
         }
 
-        return await self._request("/reader", body)
+        # Make HTTP request
+        result_data = await self._http_request(body)
 
-    async def _request(
-        self,
-        endpoint: str,
-        body: dict[str, Any],
-    ) -> ReaderResult:
-        """Make HTTP request to reader API.
-
-        Args:
-            endpoint: API endpoint path
-            body: Request body dict
-
-        Returns:
-            ReaderResult with parsed content
-
-        Raises:
-            AuthError: For 401/403 responses
-            ApiError: For other 4xx/5xx responses
-            TimeoutError: For request timeouts
-            NetworkError: For network failures
-        """
-        url = f"{self.config.zai_base_url}{endpoint}"
-
-        if self.enable_logging:
-            logger.debug("-> POST %s (%d bytes)", endpoint, len(str(body)))
-
-        # Get timeout from body for httpx client
-        request_timeout = body.get("timeout", DEFAULT_TIMEOUT)
-
-        try:
-            async with httpx.AsyncClient(timeout=request_timeout) as client:
-                response = await client.post(
-                    url,
-                    json=body,
-                    headers={
-                        "Authorization": f"Bearer {self.config.zai_token}",
-                        "Content-Type": "application/json",
-                        "Accept-Language": "en-US,en",
-                    },
-                )
-
-                if self.enable_logging:
-                    logger.debug(
-                        "<- %d %d bytes",
-                        response.status_code,
-                        len(response.content),
-                    )
-
-                # Handle error responses
-                if not response.is_success:
-                    self._handle_error_response(response)
-
-                # Parse and return result
-                return self._parse_reader_response(response.json(), body["url"])
-
-        except asyncio.TimeoutError as e:
-            timeout_ms = body.get("timeout", DEFAULT_TIMEOUT) * 1000
-            if self.enable_logging:
-                logger.error("! TimeoutError: Request timed out after %dms", timeout_ms)
-            raise TimeoutError(timeout_ms) from e
-        except httpx.TimeoutException as e:
-            timeout_ms = body.get("timeout", DEFAULT_TIMEOUT) * 1000
-            if self.enable_logging:
-                logger.error("! TimeoutException: Request timed out after %dms", timeout_ms)
-            raise TimeoutError(timeout_ms) from e
-        except httpx.ConnectError as e:
-            if self.enable_logging:
-                logger.error("! NetworkError: %s", e)
-            raise NetworkError(str(e)) from e
-        except httpx.NetworkError as e:
-            if self.enable_logging:
-                logger.error("! NetworkError: %s", e)
-            raise NetworkError(str(e)) from e
-        except (AuthError, ApiError):
-            # Re-raise these as-is
-            raise
-        except ZaiError:
-            # Re-raise other ZaiErrors as-is
-            raise
-        except Exception as e:
-            if self.enable_logging:
-                logger.error("! %s: %s", type(e).__name__, e)
-            raise
-
-    def _handle_error_response(self, response: httpx.Response) -> None:
-        """Handle error response from API.
-
-        Args:
-            response: HTTP response object
-
-        Raises:
-            AuthError: For 401/403 responses
-            ApiError: For other error responses
-        """
-        status_code = response.status_code
-        error_message = self._parse_error_message(response)
-
-        if self.enable_logging:
-            logger.error("! %d: %s", status_code, error_message)
-
-        # Raise appropriate error based on status code
-        if status_code in (401, 403):
-            raise AuthError(error_message, statusCode=status_code)
-        else:
-            raise ApiError(error_message, statusCode=status_code)
-
-    def _parse_error_message(self, response: httpx.Response) -> str:
-        """Parse error message from response.
-
-        Args:
-            response: HTTP response object
-
-        Returns:
-            Extracted error message
-        """
-        import json
-
-        try:
-            data = response.json()
-
-            # Try nested error.message
-            if isinstance(data.get("error"), dict):
-                msg = data["error"].get("message")
-                if msg:
-                    return msg if isinstance(msg, str) else json.dumps(msg)
-
-            # Try top-level message
-            if "message" in data:
-                msg = data["message"]
-                return msg if isinstance(msg, str) else json.dumps(msg)
-
-            # Try error field
-            if "error" in data:
-                msg = data["error"]
-                return msg if isinstance(msg, str) else json.dumps(msg)
-
-        except (json.JSONDecodeError, ValueError):
-            # Not JSON, use text as-is
-            pass
-
-        return response.text or f"HTTP {response.status_code}"
-
-    def _parse_reader_response(
-        self,
-        data: dict[str, Any],
-        original_url: str,
-    ) -> ReaderResult:
-        """Parse reader API response into ReaderResult.
-
-        Args:
-            data: Response JSON data
-            original_url: The original URL requested
-
-        Returns:
-            ReaderResult with parsed content
-
-        Raises:
-            ApiError: If response format is invalid
-        """
-        try:
-            reader_result = data["reader_result"]
-
+        # Parse result into ReaderResult
+        if isinstance(result_data, dict):
+            reader_result = result_data.get("reader_result", result_data)
             return ReaderResult(
-                content=reader_result["content"],
-                title=reader_result["title"],
-                url=reader_result.get("url", original_url),
+                content=reader_result.get("content", ""),
+                title=reader_result.get("title", ""),
+                url=reader_result.get("url", url),
                 description=reader_result.get("description"),
             )
-        except (KeyError, TypeError) as e:
-            raise ApiError(f"Invalid response format: {e}") from e
+
+        # Fallback for non-dict responses
+        return ReaderResult(
+            content=str(result_data),
+            title="",
+            url=url,
+            description=None,
+        )

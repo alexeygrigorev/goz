@@ -1,7 +1,7 @@
 """Search API client for Z.AI.
 
 This module provides the SearchClient class for performing web searches
-using the Z.AI WebSearchPrime API.
+using the Z.AI WebSearchPrime API via direct HTTP.
 """
 from __future__ import annotations
 
@@ -12,12 +12,8 @@ from typing import Any, Literal
 
 import httpx
 
-from goz.api.errors import AuthError, ApiError, NetworkError, TimeoutError, ZaiError
+from goz.api.errors import AuthError, ApiError, NetworkError, TimeoutError, ValidationError, ZaiError
 from goz.config import Config, load_config
-
-
-# Logger for search requests
-logger = logging.getLogger(__name__)
 
 
 # Type definitions
@@ -26,12 +22,17 @@ RecencyFilter = Literal["oneDay", "oneWeek", "oneMonth", "oneYear", "noLimit"]
 
 # Constants
 VALID_RECENCY_FILTERS = ["oneDay", "oneWeek", "oneMonth", "oneYear", "noLimit"]
-DEFAULT_COUNT = None  # Use API default
+DEFAULT_COUNT = None
+RETRY_COUNT = 0
+BASE_DELAY = 1.0
+
+# Direct HTTP endpoint (uses coding/paas base URL)
+CODING_PAAS_BASE = "https://api.z.ai/api/coding/paas/v4"
+SEARCH_API_ENDPOINT = f"{CODING_PAAS_BASE}/web_search"
 
 
-# Retry configuration
-MAX_RETRIES = 2  # Total attempts: 3 (initial + 2 retries)
-BASE_DELAY = 1.0  # Base delay in seconds
+# Logger for search requests
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -58,10 +59,6 @@ class SearchResult:
         return f"SearchResult(rank={self.rank}, title={self.title!r}, url={self.url!r})"
 
 
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
 def validate_search_params(
     query: str,
     count: int | None = None,
@@ -77,105 +74,18 @@ def validate_search_params(
     Raises:
         ValueError: If any parameter is invalid
     """
-    # Validate query
     if not query or not query.strip():
         raise ValueError("Search query cannot be empty")
 
-    # Validate count
     if count is not None and count <= 0:
         raise ValueError("Count must be a positive integer")
 
-    # Validate recency_filter
     if recency_filter is not None and recency_filter not in VALID_RECENCY_FILTERS:
         raise ValueError(
             f"Invalid recency filter: {recency_filter}. "
             f"Valid options: {', '.join(VALID_RECENCY_FILTERS)}"
         )
 
-
-def build_search_request_body(
-    query: str,
-    count: int | None = None,
-    domain_filter: str | None = None,
-    recency_filter: RecencyFilter | None = None,
-) -> dict[str, Any]:
-    """Build request body for search API.
-
-    Args:
-        query: Search query string
-        count: Optional result count limit
-        domain_filter: Optional domain filter
-        recency_filter: Optional recency filter value
-
-    Returns:
-        Request body dictionary
-    """
-    body: dict[str, Any] = {
-        "search_engine": "search-prime",
-        "search_query": query,
-    }
-
-    # Add optional parameters only if provided
-    if count is not None:
-        body["count"] = count
-
-    if domain_filter is not None:
-        body["search_domain_filter"] = domain_filter
-
-    if recency_filter is not None:
-        body["search_recency_filter"] = recency_filter
-
-    return body
-
-
-def parse_search_response(response: dict[str, Any]) -> list[SearchResult]:
-    """Parse API response into SearchResult list.
-
-    Args:
-        response: API response dictionary
-
-    Returns:
-        List of SearchResult objects
-
-    Raises:
-        KeyError: If required fields are missing from response
-    """
-    search_results = response.get("search_result", [])
-
-    results = []
-    for idx, item in enumerate(search_results):
-        result = SearchResult(
-            rank=idx + 1,  # 1-indexed
-            title=item["title"],
-            url=item["link"],
-            summary=item["content"],
-            source=item.get("media"),
-            date=item.get("publish_date"),
-        )
-        results.append(result)
-
-    return results
-
-
-def limit_results(results: list[SearchResult], count: int | None) -> list[SearchResult]:
-    """Limit results to specified count.
-
-    Args:
-        results: List of search results
-        count: Maximum number of results to return
-
-    Returns:
-        Limited list of search results
-    """
-    if count is None:
-        return results
-
-    return results[:count]
-
-
-# ============================================================================
-# SearchClient Class
-# ============================================================================
 
 class SearchClient:
     """Web search client using Z.AI WebSearchPrime API.
@@ -191,21 +101,19 @@ class SearchClient:
             config: Optional config object. If not provided, loads from default location.
         """
         self.config = config or load_config()
-        self.enable_logging = False  # Can be set via environment variable or parameter
+        self.enable_logging = False
 
-    async def _request(
+    async def _http_request(
         self,
-        endpoint: str,
         body: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Make HTTP request to API with retry logic.
+    ) -> Any:
+        """Make HTTP request to Search API.
 
         Args:
-            endpoint: API endpoint path
-            body: Request body dict
+            body: Request body
 
         Returns:
-            Parsed JSON response dict
+            Parsed response data
 
         Raises:
             AuthError: For 401/403 responses
@@ -213,23 +121,22 @@ class SearchClient:
             NetworkError: For connection failures
             TimeoutError: For request timeouts
         """
-        url = f"{self.config.zai_base_url}{endpoint}"
         headers = {
             "Authorization": f"Bearer {self.config.zai_token}",
             "Content-Type": "application/json",
-            "Accept-Language": "en-US,en",
+            "Accept": "application/json",
         }
         timeout = self.config.timeout
 
         last_error = None
 
-        for attempt in range(MAX_RETRIES + 1):
+        for attempt in range(RETRY_COUNT + 1):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     if self.enable_logging:
-                        logger.info(f"-> POST {endpoint} ({len(str(body))} bytes)")
+                        logger.info(f"-> POST {SEARCH_API_ENDPOINT}")
 
-                    response = await client.post(url, json=body, headers=headers)
+                    response = await client.post(SEARCH_API_ENDPOINT, json=body, headers=headers)
 
                     if self.enable_logging:
                         logger.info(
@@ -270,10 +177,10 @@ class SearchClient:
                     logger.error(f"! Unexpected error: {e}")
 
             # Retry with exponential backoff
-            if attempt < MAX_RETRIES:
+            if attempt < RETRY_COUNT:
                 delay = BASE_DELAY * (2 ** attempt)
                 if self.enable_logging:
-                    logger.info(f"Retrying in {delay}s... (attempt {attempt + 1}/{MAX_RETRIES})")
+                    logger.info(f"Retrying in {delay}s... (attempt {attempt + 1}/{RETRY_COUNT})")
                 await asyncio.sleep(delay)
 
         # All retries exhausted
@@ -292,7 +199,6 @@ class SearchClient:
         """
         try:
             data = response.json()
-            # Try various error message locations
             if "error" in data:
                 error = data["error"]
                 if isinstance(error, dict):
@@ -303,7 +209,6 @@ class SearchClient:
             if "message" in data:
                 return str(data["message"])
         except Exception:
-            # If parsing fails, use raw text
             pass
         return response.text
 
@@ -332,19 +237,48 @@ class SearchClient:
             NetworkError: For network failures
             TimeoutError: For request timeouts
         """
-        # Validate parameters
         validate_search_params(query, count, recency_filter)
 
         # Build request body
-        body = build_search_request_body(query, count, domain_filter, recency_filter)
+        body: dict[str, Any] = {
+            "search_engine": "search-prime",
+            "search_query": query,
+        }
 
-        # Make API request
-        response = await self._request("/web_search", body)
+        if count is not None:
+            body["count"] = count
 
-        # Parse response
-        results = parse_search_response(response)
+        if domain_filter is not None:
+            body["search_domain_filter"] = domain_filter
 
-        # Limit results if count was specified
-        results = limit_results(results, count)
+        if recency_filter is not None:
+            body["search_recency_filter"] = recency_filter
+
+        # Make HTTP request
+        results_data = await self._http_request(body)
+
+        # Parse results
+        results = []
+        if isinstance(results_data, list):
+            for idx, item in enumerate(results_data):
+                results.append(SearchResult(
+                    rank=idx + 1,
+                    title=item.get("title", ""),
+                    url=item.get("link", ""),
+                    summary=item.get("content", ""),
+                    source=item.get("media"),
+                    date=item.get("publish_date"),
+                ))
+        elif isinstance(results_data, dict):
+            # Single result or error response
+            if "link" in results_data:
+                results.append(SearchResult(
+                    rank=1,
+                    title=results_data.get("title", ""),
+                    url=results_data.get("link", ""),
+                    summary=results_data.get("content", ""),
+                    source=results_data.get("media"),
+                    date=results_data.get("publish_date"),
+                ))
 
         return results

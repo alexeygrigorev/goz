@@ -105,7 +105,7 @@ class RepoClient:
         headers = {
             "Authorization": f"Bearer {self.config.zai_token}",
             "Content-Type": "application/json",
-            "Accept": "application/json",
+            "Accept": "application/json, text/event-stream",
         }
         timeout = self.config.timeout
 
