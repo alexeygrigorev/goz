@@ -58,8 +58,8 @@ class TestVisionClientAnalyzeLocalPng:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -94,8 +94,8 @@ class TestVisionClientAnalyzeLocalJpeg:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -129,8 +129,8 @@ class TestVisionClientAnalyzeUrl:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -172,8 +172,8 @@ class TestVisionClientUiToCode:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -211,8 +211,8 @@ class TestVisionClientExtractText:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -250,8 +250,8 @@ class TestVisionClientDiagnoseError:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -290,8 +290,8 @@ class TestVisionClientAnalyzeMp4:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -333,8 +333,8 @@ class TestVisionClientAnalyzeMov:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -354,8 +354,8 @@ class TestVisionErrorNonExistentPath:
         nonexistent = tmp_path / "does-not-exist.png"
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -379,8 +379,8 @@ class TestVisionErrorImageTooLarge:
         large_file.write_bytes(b"x" * (MAX_IMAGE_SIZE + 1))
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -404,8 +404,8 @@ class TestVisionErrorVideoTooLarge:
         large_file.write_bytes(b"x" * (MAX_VIDEO_SIZE + 1))
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -426,8 +426,8 @@ class TestVisionErrorUnsupportedImageFormat:
         svg_file.write_bytes(b"<svg></svg>")
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -445,8 +445,8 @@ class TestVisionErrorUnsupportedImageFormat:
         gif_file.write_bytes(b"GIF89a")
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -467,8 +467,8 @@ class TestVisionErrorUnsupportedVideoFormat:
         flv_file.write_bytes(b"FLV")
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -499,8 +499,8 @@ class TestVisionErrorInvalidToken:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "invalid-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "invalid-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -537,8 +537,8 @@ class TestVisionErrorTimeout:
         mock_async_client = TimeoutMockClient()
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -570,8 +570,8 @@ class TestVisionErrorMalformedResponse:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -634,8 +634,8 @@ class TestVisionEdgeCaseSpecialCharactersInPath:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):
@@ -661,8 +661,8 @@ class TestVisionEdgeCaseSpecialCharactersInPath:
         mock_async_client = MockAsyncClient(mock_response)
 
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         with patch("goz.api.vision.load_config", return_value=mock_config):

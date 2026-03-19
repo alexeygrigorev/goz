@@ -168,8 +168,8 @@ class TestVisionClientAnalyze:
         """Test analyze with image URL."""
         # Create a mock config
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         # Create mock response
@@ -198,8 +198,8 @@ class TestVisionClientAnalyze:
     async def test_analyze_with_local_image(self, tmp_path):
         """Test analyze with local image file."""
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         mock_response = MagicMock()
@@ -225,8 +225,8 @@ class TestVisionClientAnalyze:
     async def test_analyze_with_custom_prompt(self, tmp_path):
         """Test analyze with custom prompt."""
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         mock_response = MagicMock()
@@ -256,8 +256,8 @@ class TestVisionClientUiToCode:
     async def test_ui_to_code_uses_specialized_prompt(self, tmp_path):
         """Test ui_to_code uses specialized prompt for UI to code."""
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         mock_response = MagicMock()
@@ -293,8 +293,8 @@ class TestVisionClientExtractText:
     async def test_extract_text_uses_specialized_prompt(self, tmp_path):
         """Test extract_text uses specialized prompt for text extraction."""
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         mock_response = MagicMock()
@@ -330,8 +330,8 @@ class TestVisionClientDiagnoseError:
     async def test_diagnose_error_uses_specialized_prompt(self, tmp_path):
         """Test diagnose_error uses specialized prompt for error diagnosis."""
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         mock_response = MagicMock()
@@ -368,8 +368,8 @@ class TestVisionClientWithVideo:
     async def test_analyze_video_file(self, tmp_path):
         """Test analyze with video file."""
         mock_config = MagicMock()
-        mock_config.anthropic_auth_token = "test-token"
-        mock_config.anthropic_base_url = "https://api.z.ai/api/anthropic"
+        mock_config.zai_token = "test-token"
+        mock_config.zai_base_url = "https://api.z.ai/api/anthropic"
         mock_config.timeout = 120
 
         mock_response = MagicMock()

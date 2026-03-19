@@ -123,9 +123,9 @@ class VisionClient:
             NetworkError: For connection failures
             TimeoutError: For request timeouts
         """
-        url = f"{self.config.anthropic_base_url}{endpoint}"
+        url = f"{self.config.zai_base_url}{endpoint}"
         headers = {
-            "Authorization": f"Bearer {self.config.anthropic_auth_token}",
+            "Authorization": f"Bearer {self.config.zai_token}",
             "Content-Type": "application/json",
             "Accept-Language": "en-US,en",
         }

@@ -67,7 +67,7 @@ class AuthError(ZaiError):
             code="AUTH_ERROR",
             statusCode=statusCode,
             help="Authentication failed. Check your API key in ~/.config/goz/config.json. "
-            "Run 'goz config set anthropic_auth_token <your-token>' to update.",
+            "Run 'goz config set zai_token <your-token>' to update.",
         )
 
 
