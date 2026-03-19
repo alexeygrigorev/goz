@@ -362,6 +362,156 @@ Examples:
         sys.exit(1)
 
 
+async def cmd_repo(args: list[str]) -> None:
+    """Handle the `goz repo` command.
+
+    Usage:
+        goz repo search <owner/repo> <query>
+        goz repo tree <owner/repo>
+        goz repo read <owner/repo> <file_path>
+
+    Args:
+        args: Command arguments
+    """
+    # Check for help or no args
+    if not args or args[0] in ("--help", "-h", "help"):
+        print("""Repo command usage:
+
+  goz repo search <owner/repo> <query>   Search docs and code in repository
+  goz repo tree <owner/repo>             Get repository directory structure
+  goz repo read <owner/repo> <path>      Read a file from repository
+
+Search Options:
+  --language <lang>   Result language: en (default) or zh
+
+Tree Options:
+  --path <path>       Directory path to inspect (default: repo root)
+  --depth <n>         Expand subdirectory trees (default: 1)
+
+Examples:
+  goz repo search facebook/react "server components"
+  goz repo search vercel/next.js "app router" --language en
+  goz repo tree vercel/next.js
+  goz repo tree vercel/next.js --path packages --depth 2
+  goz repo read anthropics/anthropic-sdk-python README.md
+
+Notes:
+  - Repository must be public
+  - Use "owner/repo" format (e.g., "facebook/react")
+  - Paths are relative to repository root
+""")
+        return
+
+    subcommand = args[0]
+
+    if subcommand == "search":
+        # goz repo search <owner/repo> <query> [--language <lang>]
+        if len(args) < 3:
+            print("Error: repo search requires <owner/repo> and <query>", file=sys.stderr)
+            print("Usage: goz repo search <owner/repo> <query> [--language <lang>]", file=sys.stderr)
+            sys.exit(1)
+
+        repo = args[1]
+        query = args[2]
+        language = None
+
+        # Parse optional args
+        i = 3
+        while i < len(args):
+            if args[i] == "--language" and i + 1 < len(args):
+                language = args[i + 1]
+                i += 2
+            else:
+                i += 1
+
+        from goz.api.repo import RepoClient
+        from goz.config import load_config
+
+        config = load_config()
+        client = RepoClient(config=config)
+
+        try:
+            results = await client.search(repo, query, language)
+            for r in results:
+                if r.title:
+                    print(f"# {r.title}")
+                print(r.content)
+                if r.url:
+                    print(f"URL: {r.url}")
+                print()
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    elif subcommand == "tree":
+        # goz repo tree <owner/repo> [--path <path>] [--depth <n>]
+        if len(args) < 2:
+            print("Error: repo tree requires <owner/repo>", file=sys.stderr)
+            print("Usage: goz repo tree <owner/repo> [--path <path>] [--depth <n>]", file=sys.stderr)
+            sys.exit(1)
+
+        repo = args[1]
+        path = None
+        depth = 1
+
+        # Parse optional args
+        i = 2
+        while i < len(args):
+            if args[i] == "--path" and i + 1 < len(args):
+                path = args[i + 1]
+                i += 2
+            elif args[i] == "--depth" and i + 1 < len(args):
+                try:
+                    depth = int(args[i + 1])
+                except ValueError:
+                    print(f"Error: depth must be an integer, got '{args[i + 1]}'", file=sys.stderr)
+                    sys.exit(1)
+                i += 2
+            else:
+                i += 1
+
+        from goz.api.repo import RepoClient
+        from goz.config import load_config
+
+        config = load_config()
+        client = RepoClient(config=config)
+
+        try:
+            result = await client.tree(repo, path, depth)
+            print(result)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    elif subcommand == "read":
+        # goz repo read <owner/repo> <file_path>
+        if len(args) < 3:
+            print("Error: repo read requires <owner/repo> and <file_path>", file=sys.stderr)
+            print("Usage: goz repo read <owner/repo> <file_path>", file=sys.stderr)
+            sys.exit(1)
+
+        repo = args[1]
+        file_path = args[2]
+
+        from goz.api.repo import RepoClient
+        from goz.config import load_config
+
+        config = load_config()
+        client = RepoClient(config=config)
+
+        try:
+            result = await client.read(repo, file_path)
+            print(result)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    else:
+        print(f"Error: Unknown repo subcommand '{subcommand}'", file=sys.stderr)
+        print("Run 'goz repo --help' for usage", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_config(args: list[str]) -> None:
     """Handle the `goz config` command.
 
@@ -545,6 +695,7 @@ Commands:
   vision    Image and video analysis
   search    Real-time web search
   read      Fetch and parse web pages
+  repo      GitHub repository exploration
   config    Manage configuration
   doctor    Environment + connectivity checks
   tui       Launch interactive terminal UI
@@ -557,6 +708,7 @@ For command-specific help:
   goz vision --help
   goz search --help
   goz read --help
+  goz repo --help
   goz config --help
   goz doctor --help
 
@@ -565,6 +717,8 @@ Examples:
   goz vision ui-to-code screenshot.png
   goz search "python async await"
   goz read https://example.com/article
+  goz repo tree vercel/next.js
+  goz repo search facebook/react "hooks"
   goz config get zai_token
 
 With no command, launches the interactive TUI.
@@ -584,7 +738,7 @@ With no command, launches the interactive TUI.
     parser.add_argument(
         "command",
         nargs="?",
-        help="Command to run (config, vision, search, read, doctor, tui)",
+        help="Command to run (config, vision, search, read, repo, doctor, tui)",
     )
     parser.add_argument(
         "args",
@@ -609,6 +763,8 @@ With no command, launches the interactive TUI.
         asyncio.run(cmd_search(args.args))
     elif args.command == "read":
         asyncio.run(cmd_read(args.args))
+    elif args.command == "repo":
+        asyncio.run(cmd_repo(args.args))
     elif args.command == "doctor":
         cmd_doctor(args.args)
     elif args.command in ("tui", "ui"):

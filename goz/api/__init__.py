@@ -3,6 +3,7 @@
 from goz.api.client import ZaiApiClient
 from goz.api.errors import ApiError, AuthError, NetworkError, TimeoutError, ValidationError, ZaiError
 from goz.api.reader import ReaderClient, ReaderResult
+from goz.api.repo import RepoClient, RepoSearchResult
 from goz.api.search import SearchClient, SearchResult, RecencyFilter
 
 __all__ = [
@@ -15,6 +16,8 @@ __all__ = [
     "ValidationError",
     "ReaderClient",
     "ReaderResult",
+    "RepoClient",
+    "RepoSearchResult",
     "SearchClient",
     "SearchResult",
     "RecencyFilter",
