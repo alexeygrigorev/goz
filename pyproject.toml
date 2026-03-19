@@ -9,21 +9,9 @@ readme = "README.md"
 license = {text = "WTFPL"}
 requires-python = ">=3.10"
 dynamic = ["version"]
-
-dependencies = [
-    "textual>=0.86",
-    "httpx>=0.27",
-    "pydantic>=2.0",
-    "python-dotenv>=1.0",
-]
-
-[project.scripts]
-goz = "goz.__main__:main"
-
 authors = [
     {name = "Alexe", email = "alex@example.com"}
 ]
-
 keywords = ["utilities", "helpers"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -34,6 +22,16 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
+
+dependencies = [
+    "textual>=0.86",
+    "httpx>=0.27",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+goz = "goz.__main__:main"
 
 [dependency-groups]
 dev = [

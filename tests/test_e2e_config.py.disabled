@@ -1,0 +1,378 @@
+"""E2E tests for configuration management (Issue 02)."""
+import json
+import os
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+from pydantic import ValidationError
+
+from goz.config import Config, ConfigManager, DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILE
+
+
+class TestConfigModel:
+    """Tests for Config pydantic model (Acceptance Criteria 2)."""
+
+    def test_config_model_with_valid_data(self):
+        """Test Config model accepts valid data."""
+        config = Config(
+            anthropic_auth_token="sk-ant-test1234567890abcdef",
+            anthropic_base_url="https://api.z.ai/api/anthropic",
+            timeout=120,
+        )
+        assert config.anthropic_auth_token == "sk-ant-test1234567890abcdef"
+        assert config.anthropic_base_url == "https://api.z.ai/api/anthropic"
+        assert config.timeout == 120
+
+    def test_config_model_with_defaults(self):
+        """Test Config model uses default values."""
+        config = Config(anthropic_auth_token="sk-ant-test1234567890abcdef")
+        assert config.anthropic_auth_token == "sk-ant-test1234567890abcdef"
+        assert config.anthropic_base_url == "https://api.z.ai/api/anthropic"
+        assert config.timeout == 120
+
+    def test_config_model_validation_error(self):
+        """Test Config model raises ValidationError for invalid data."""
+        with pytest.raises(ValidationError):
+            Config(anthropic_auth_token="", timeout=-1)
+
+    def test_config_model_timeout_must_be_positive(self):
+        """Test timeout must be a positive integer."""
+        with pytest.raises(ValidationError):
+            Config(anthropic_auth_token="sk-ant-test1234567890abcdef", timeout=0)
+
+    def test_config_model_serialization(self):
+        """Test Config model serializes to JSON correctly."""
+        config = Config(
+            anthropic_auth_token="sk-ant-test1234567890abcdef",
+            anthropic_base_url="https://api.z.ai/api/anthropic",
+            timeout=120,
+        )
+        data = json.loads(config.model_dump_json())
+        assert data["anthropic_auth_token"] == "sk-ant-test1234567890abcdef"
+        assert data["anthropic_base_url"] == "https://api.z.ai/api/anthropic"
+        assert data["timeout"] == 120
+
+    def test_config_model_deserialization(self):
+        """Test Config model deserializes from JSON correctly."""
+        json_str = '{"anthropic_auth_token": "sk-ant-test1234567890abcdef", "anthropic_base_url": "https://api.z.ai/api/anthropic", "timeout": 120}'
+        config = Config.model_validate_json(json_str)
+        assert config.anthropic_auth_token == "sk-ant-test1234567890abcdef"
+        assert config.anthropic_base_url == "https://api.z.ai/api/anthropic"
+        assert config.timeout == 120
+
+
+class TestConfigPath:
+    """Tests for config path at ~/.config/goz/config.json (Acceptance Criteria 1)."""
+
+    def test_default_config_path(self):
+        """Test config is at ~/.config/goz/config.json."""
+        home = Path.home()
+        expected_dir = home / ".config" / "goz"
+        expected_file = expected_dir / "config.json"
+        assert DEFAULT_CONFIG_DIR == expected_dir
+        assert DEFAULT_CONFIG_FILE == expected_file
+
+
+class TestFirstRunCreatesConfig:
+    """Tests for first run creates config directory and prompts for token (Acceptance Criteria 3, 4, 6)."""
+
+    def test_first_run_creates_config_directory(self, tmp_path):
+        """Test first run creates ~/.config/goz/ directory if missing."""
+        # Use a temp directory to mock ~/.config
+        config_dir = tmp_path / ".config" / "goz"
+        assert not config_dir.exists()
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_dir / "config.json"):
+            manager = ConfigManager()
+            assert config_dir.exists()
+
+    def test_first_run_creates_config_file_with_token(self, tmp_path):
+        """Test first run prompts for token and creates config file."""
+        config_file = tmp_path / "config.json"
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            with patch("builtins.input", return_value="sk-ant-test1234567890abcdef"):
+                manager = ConfigManager()
+                # Note: ConfigManager() doesn't create file on init, load() does
+                config = manager.load()
+                assert config_file.exists()
+
+                with open(config_file) as f:
+                    data = json.load(f)
+                assert data["anthropic_auth_token"] == "sk-ant-test1234567890abcdef"
+                assert data["anthropic_base_url"] == "https://api.z.ai/api/anthropic"
+                assert data["timeout"] == 120
+
+
+class TestSilentLoading:
+    """Tests for silent loading with existing config (Acceptance Criteria 5)."""
+
+    def test_existing_config_loads_without_prompt(self, tmp_path, capsys):
+        """Test subsequent run with existing config skips prompt."""
+        config_file = tmp_path / "config.json"
+
+        # Create existing config
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-existingtoken123",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            manager = ConfigManager()
+            config = manager.load()
+
+            assert config.anthropic_auth_token == "sk-ant-existingtoken123"
+
+            # Verify no prompt was shown
+            captured = capsys.readouterr()
+            assert "Enter your Z.AI auth token" not in captured.out
+
+
+class TestConfigCommand:
+    """Tests for goz config command (Acceptance Criteria 6, 7)."""
+
+    def test_config_command_shows_masked_token(self, tmp_path, capsys):
+        """Test goz config shows masked token (****last4)."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-test1234567890abcdef",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            manager = ConfigManager()
+            manager.show_config()
+
+            captured = capsys.readouterr()
+            assert "****cdef" in captured.out  # Last 4 chars
+            assert "sk-ant-test1234567890abcdef" not in captured.out  # Full token not shown
+            assert "anthropic_base_url" in captured.out
+            assert "https://api.z.ai/api/anthropic" in captured.out
+            assert "timeout" in captured.out
+            assert "120" in captured.out
+
+    def test_config_command_short_token_masking(self, tmp_path, capsys):
+        """Test token masking works for tokens shorter than 4 chars."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            manager = ConfigManager()
+            manager.show_config()
+
+            captured = capsys.readouterr()
+            assert "****sk" in captured.out  # For short tokens, show **** + full token
+
+
+class TestConfigSetCommand:
+    """Tests for goz config set command (Acceptance Criteria 8)."""
+
+    def test_config_set_updates_token(self, tmp_path):
+        """Test goz config set anthropic_auth_token <token> updates file."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Create initial config
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-oldtoken123",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            manager = ConfigManager()
+            manager.set_config("anthropic_auth_token", "sk-ant-newtoken456")
+
+            with open(config_file) as f:
+                data = json.load(f)
+            assert data["anthropic_auth_token"] == "sk-ant-newtoken456"
+            assert data["anthropic_base_url"] == "https://api.z.ai/api/anthropic"
+            assert data["timeout"] == 120  # Other fields preserved
+
+    def test_config_set_updates_base_url(self, tmp_path):
+        """Test goz config set anthropic_base_url <url> updates file."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-test123",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            manager = ConfigManager()
+            manager.set_config("anthropic_base_url", "https://custom.api.com/v1")
+
+            with open(config_file) as f:
+                data = json.load(f)
+            assert data["anthropic_base_url"] == "https://custom.api.com/v1"
+
+    def test_config_set_updates_timeout(self, tmp_path):
+        """Test goz config set timeout <value> updates file."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-test123",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            manager = ConfigManager()
+            manager.set_config("timeout", "300")
+
+            with open(config_file) as f:
+                data = json.load(f)
+            assert data["timeout"] == 300
+
+
+class TestInvalidJson:
+    """Tests for invalid JSON in config file (QA Requirement)."""
+
+    def test_invalid_json_shows_error(self, tmp_path, capsys):
+        """Test invalid JSON in config file shows clear error message."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write invalid JSON
+        with open(config_file, "w") as f:
+            f.write("{invalid json content")
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            with pytest.raises(json.JSONDecodeError):
+                manager = ConfigManager()
+                manager.load()
+
+    def test_empty_config_file_creates_default(self, tmp_path):
+        """Test empty config file triggers prompt for new token."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Create empty file
+        config_file.touch()
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            with patch("builtins.input", return_value="sk-ant-newtoken123"):
+                manager = ConfigManager()
+                config = manager.load()
+                assert config.anthropic_auth_token == "sk-ant-newtoken123"
+
+
+class TestTokenNeverExposed:
+    """Tests that token never appears in stdout or stderr unmasked (QA Requirement)."""
+
+    def test_token_not_in_logs(self, tmp_path, capsys):
+        """Test full token never appears in output."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        full_token = "sk-ant-test1234567890abcdef"
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": full_token,
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            manager = ConfigManager()
+            manager.show_config()
+
+            captured = capsys.readouterr()
+            assert full_token not in captured.out
+            assert full_token not in captured.err
+
+
+class TestCLIConfigCommand:
+    """E2E tests for goz config CLI command."""
+
+    def test_goz_config_shows_current_settings(self, tmp_path, capsys):
+        """Test `goz config` shows masked token and other fields."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-test1234567890abcdef",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            from goz.__main__ import main
+            import sys
+            sys.argv = ["goz", "config"]
+            main()
+
+            captured = capsys.readouterr()
+            assert "****cdef" in captured.out
+            assert "sk-ant-test1234567890abcdef" not in captured.out
+            assert "anthropic_base_url: https://api.z.ai/api/anthropic" in captured.out
+            assert "timeout: 120" in captured.out
+
+    def test_goz_config_set_updates_token(self, tmp_path, capsys):
+        """Test `goz config set anthropic_auth_token <token>` updates file."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-oldtoken123",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            from goz.__main__ import main
+            import sys
+            sys.argv = ["goz", "config", "set", "anthropic_auth_token", "sk-ant-newtoken456"]
+            main()
+
+            captured = capsys.readouterr()
+            assert "Config updated successfully" in captured.out
+
+            with open(config_file) as f:
+                data = json.load(f)
+            assert data["anthropic_auth_token"] == "sk-ant-newtoken456"
+
+    def test_goz_config_set_invalid_key_shows_error(self, tmp_path, capsys):
+        """Test `goz config set <invalid_key>` shows error."""
+        config_file = tmp_path / "config.json"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file, "w") as f:
+            json.dump({
+                "anthropic_auth_token": "sk-ant-test123",
+                "anthropic_base_url": "https://api.z.ai/api/anthropic",
+                "timeout": 120,
+            }, f)
+
+        with patch("goz.config.DEFAULT_CONFIG_FILE", config_file):
+            from goz.__main__ import main
+            import sys
+            sys.argv = ["goz", "config", "set", "invalid_key", "value"]
+            with pytest.raises(SystemExit):
+                main()
+
+            captured = capsys.readouterr()
+            assert "Invalid config key" in captured.err
