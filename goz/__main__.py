@@ -15,9 +15,16 @@ async def cmd_vision(args: list[str]) -> None:
     Args:
         args: [image_path_or_url, prompt]
     """
-    if not args:
-        print("Usage: goz vision <image_path_or_url> [prompt]", file=sys.stderr)
-        sys.exit(1)
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="goz vision")
+    parser.add_argument("image", help="Image path or URL")
+    parser.add_argument("prompt", nargs="?", default="Describe this image in detail.",
+                       help="Custom prompt for analysis")
+    parser.add_argument("--no-stream", action="store_true",
+                       help="Disable streaming (wait for full response)")
+
+    parsed = parser.parse_args(args)
 
     from goz.api.vision import VisionClient
     from goz.config import load_config
@@ -25,12 +32,15 @@ async def cmd_vision(args: list[str]) -> None:
     config = load_config()
     client = VisionClient(config=config)
 
-    image = args[0]
-    prompt = args[1] if len(args) > 1 else "Describe this image in detail."
-
     try:
-        result = await client.analyze(image, prompt)
-        print(result)
+        if parsed.no_stream:
+            result = await client.analyze(parsed.image, parsed.prompt)
+            print(result)
+        else:
+            # Stream response chunk by chunk
+            async for chunk in client.analyze_stream(parsed.image, parsed.prompt):
+                print(chunk, end="", flush=True)
+            print()  # New line after streaming completes
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -143,6 +153,83 @@ def cmd_config(args: list[str]) -> None:
     manager.show_config()
 
 
+def cmd_doctor(args: list[str]) -> None:
+    """Handle the `goz doctor` command.
+
+    Args:
+        args: Remaining arguments
+    """
+    import asyncio
+
+    async def run_doctor() -> None:
+        from goz.api.vision import VisionClient
+        from goz.api.search import SearchClient
+        from goz.api.reader import ReaderClient
+        from goz.config import load_config, DEFAULT_CONFIG_FILE
+        from pathlib import Path
+        import sys
+
+        checks_passed = 0
+        checks_failed = 0
+
+        # Check 1: Config file
+        print("Checking configuration...")
+        if DEFAULT_CONFIG_FILE.exists():
+            print(f"  [PASS] Config file found at {DEFAULT_CONFIG_FILE}")
+            checks_passed += 1
+        else:
+            print(f"  [FAIL] Config file not found at {DEFAULT_CONFIG_FILE}")
+            print(f"         Run 'goz config' to set up.")
+            checks_failed += 1
+
+        # Check 2: Load config and validate token
+        try:
+            config = load_config()
+            if config.zai_token:
+                masked = f"****{config.zai_token[-4:]}" if len(config.zai_token) > 4 else "****"
+                print(f"  [PASS] API token present ({masked})")
+                checks_passed += 1
+            else:
+                print(f"  [FAIL] API token not set")
+                checks_failed += 1
+        except Exception as e:
+            print(f"  [FAIL] Error loading config: {e}")
+            checks_failed += 1
+            return
+
+        # Check 3: API connectivity
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(config.zai_base_url)
+                print(f"  [PASS] Base URL reachable ({config.zai_base_url})")
+                checks_passed += 1
+        except (httpx.ConnectError, httpx.NetworkError) as e:
+            print(f"  [FAIL] Cannot connect to API: {e}")
+            checks_failed += 1
+        except Exception as e:
+            print(f"  [WARN] Could not test connectivity: {e}")
+
+        # Summary
+        print()
+        if checks_failed == 0:
+            print(f"All checks passed! ({checks_passed}/{checks_passed})")
+        else:
+            print(f"Some checks failed: {checks_failed} failed, {checks_passed} passed")
+
+    asyncio.run(run_doctor())
+
+
+def cmd_tui(args: list[str]) -> None:
+    """Launch the TUI.
+
+    Args:
+        args: Remaining arguments (ignored)
+    """
+    from goz.tui import run_tui
+    run_tui()
+
+
 def main() -> None:
     """Run the goz CLI.
 
@@ -162,7 +249,7 @@ def main() -> None:
     parser.add_argument(
         "command",
         nargs="?",
-        help="Command to run (config, vision, search, read, doctor)",
+        help="Command to run (config, vision, search, read, doctor, tui)",
     )
     parser.add_argument(
         "args",
@@ -173,7 +260,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command is None:
-        parser.print_help()
+        # No command = launch TUI
+        from goz.tui import run_tui
+        run_tui()
         return
 
     # Dispatch to command handlers
@@ -185,6 +274,10 @@ def main() -> None:
         asyncio.run(cmd_search(args.args))
     elif args.command == "read":
         asyncio.run(cmd_read(args.args))
+    elif args.command == "doctor":
+        cmd_doctor(args.args)
+    elif args.command in ("tui", "ui"):
+        cmd_tui(args.args)
     else:
         print(f"Command '{args.command}' not yet implemented")
 

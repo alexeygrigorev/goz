@@ -4,6 +4,7 @@ This module provides the VisionClient class for analyzing images and videos
 using the Z.AI Anthropic-compatible API.
 """
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -345,3 +346,95 @@ class VisionClient:
             TimeoutError: For request timeouts
         """
         return await self.analyze(source, prompt=DIAGNOSE_ERROR_PROMPT)
+
+    async def analyze_stream(
+        self,
+        source: str,
+        prompt: str | None = None,
+    ):
+        """Analyze an image or video with streaming response.
+
+        Yields chunks of the response as they arrive.
+
+        Args:
+            source: Image/video file path or URL
+            prompt: Optional custom prompt for analysis
+
+        Yields:
+            Chunks of response text as they arrive
+
+        Raises:
+            FileNotFoundError: If local file doesn't exist
+            ValueError: If file size exceeds limit or format is unsupported
+            AuthError: For authentication failures
+            ApiError: For other API errors
+            NetworkError: For network failures
+            TimeoutError: For request timeouts
+        """
+        # Detect media type (image vs video)
+        if is_url(source):
+            if any(source.lower().endswith(ext) for ext in VIDEO_EXTENSIONS):
+                media_type = "video"
+                validate_video_source(source)
+                processed_source = process_video_source(source)
+            else:
+                media_type = "image"
+                validate_image_source(source)
+                processed_source = process_image_source(source)
+        else:
+            from pathlib import Path
+            ext = Path(source).suffix.lower()
+            if ext in VIDEO_EXTENSIONS:
+                media_type = "video"
+                validate_video_source(source)
+                processed_source = process_video_source(source)
+            else:
+                media_type = "image"
+                validate_image_source(source)
+                processed_source = process_image_source(source)
+
+        # Build message content
+        content = build_vision_message(processed_source, prompt, media_type)
+
+        # Make API request with streaming
+        body = {
+            "model": self.config.vision_model,
+            "messages": [{"role": "user", "content": content}],
+            "thinking": {"type": "enabled"},
+            "stream": True,
+            "temperature": self.config.temperature,
+            "top_p": self.config.top_p,
+            "max_tokens": self.config.max_tokens,
+        }
+
+        url = f"{self.config.zai_base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.config.zai_token}",
+            "Content-Type": "application/json",
+            "Accept-Language": "en-US,en",
+        }
+
+        async with httpx.AsyncClient(timeout=self.config.timeout) as client:
+            async with client.stream("POST", url, json=body, headers=headers) as response:
+                if response.status_code not in (200, 201):
+                    raise ApiError(f"HTTP {response.status_code}: {response.text}")
+
+                # Parse SSE (Server-Sent Events) stream
+                async for line in response.aiter_lines():
+                    if not line.strip():
+                        continue
+                    if line.startswith("data: "):
+                        data = line[6:].strip()
+                        if data == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data)
+                            # Extract content from streaming chunk
+                            if "choices" in chunk and chunk["choices"]:
+                                delta = chunk["choices"][0].get("delta", {})
+                                content = delta.get("content", "")
+                                reasoning = delta.get("reasoning_content", "")
+                                if content:
+                                    yield content
+                        except json.JSONDecodeError:
+                            continue

@@ -1,3 +1,5 @@
 """Textual TUI module for goz."""
 
-__all__ = []
+from goz.tui.app import GozApp, run_tui
+
+__all__ = ["GozApp", "run_tui"]
