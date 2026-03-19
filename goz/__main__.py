@@ -15,15 +15,17 @@ def _show_thinking_animation(stop_event: threading.Event) -> None:
     Args:
         stop_event: Threading event to stop the animation
     """
-    animation = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-    for frame in itertools.cycle(animation):
-        if stop_event.is_set():
-            break
-        # Print the animation frame with carriage return to overwrite
-        print(f"\r{frame} Thinking...", end="", flush=True)
-        time.sleep(0.1)
-    # Clear the animation line when done
-    print("\r" + " " * 20 + "\r", end="", flush=True)
+    animation = ["|", "/", "-", "\\"]
+    try:
+        for frame in itertools.cycle(animation):
+            if stop_event.is_set():
+                break
+            # Print the animation frame with carriage return to overwrite
+            print(f"\r{frame} Thinking...", end="", flush=True)
+            time.sleep(0.1)
+    finally:
+        # Clear the animation line when done
+        print("\r" + " " * 20 + "\r", end="", flush=True)
 
 
 async def cmd_vision(args: list[str]) -> None:
