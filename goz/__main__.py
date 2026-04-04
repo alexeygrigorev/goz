@@ -930,7 +930,7 @@ Examples:
   goz repo search facebook/react "hooks"
   goz tools --filter vision
   goz tool zai.vision.analyze_image
-  goz call zai.search.webSearchPrime --json '{"search_query":"test"}'
+  goz call zai.search.webSearchPrime --json '{{"search_query":"test"}}'
   goz config get zai_token
 
 With no command, launches the interactive TUI.
