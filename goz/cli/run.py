@@ -33,7 +33,7 @@ from goz.agent.tools import (
 from goz.config import Config, load_config
 
 
-MAX_ITERATIONS = 10
+MAX_ITERATIONS: int | None = None  # No limit by default
 DEFAULT_AGENT_TYPE = "engine"
 STEP_FINISH_TOKENS = {
     "input": 0,
@@ -276,8 +276,12 @@ async def run_prompt_jsonl(
         except (NotImplementedError, RuntimeError):
             continue
 
+    iteration = 0
     try:
-        for _ in range(MAX_ITERATIONS):
+        while True:
+            iteration += 1
+            if MAX_ITERATIONS is not None and iteration > MAX_ITERATIONS:
+                break
             chunks: list[Chunk] = []
             assistant_chunks: list[str] = []
 

@@ -164,7 +164,10 @@ class ChatHistory:
         api_messages: list[dict] = []
 
         for msg in self.messages:
-            api_msg: dict = {"role": msg.role, "content": msg.content}
+            # Anthropic API only accepts "user" and "assistant" roles in messages.
+            # Convert system messages (e.g. compaction summaries) to user messages.
+            role = msg.role if msg.role in ("user", "assistant", "tool") else "user"
+            api_msg: dict = {"role": role, "content": msg.content}
 
             # Add tool_calls if present
             if msg.tool_calls:
