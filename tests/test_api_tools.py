@@ -167,6 +167,14 @@ class TestSearchTool:
 
             assert "No results found" in result
 
+    @pytest.mark.asyncio
+    async def test_search_tool_rejects_invalid_count(self):
+        """Test SearchTool rejects invalid count values."""
+        tool = SearchTool(config=MagicMock())
+
+        with pytest.raises(ToolInputError, match="count"):
+            await tool.execute(query="test", count=0)
+
 
 # ========== Test ReadTool ==========
 
@@ -269,6 +277,14 @@ class TestReadTool:
             result = await tool.execute(url="https://example.com")
 
             assert "Error" in result or "Failed" in result
+
+    @pytest.mark.asyncio
+    async def test_read_tool_rejects_invalid_url(self):
+        """Test ReadTool rejects non-http URLs."""
+        tool = ReadTool(config=MagicMock())
+
+        with pytest.raises(ToolInputError, match="http"):
+            await tool.execute(url="ftp://example.com")
 
 
 # ========== Test RepoSearchTool ==========
@@ -382,6 +398,22 @@ class TestRepoSearchTool:
             assert "file1.py" in result
             assert "Content 1" in result
 
+    @pytest.mark.asyncio
+    async def test_repo_search_tool_rejects_invalid_repo(self):
+        """Test RepoSearchTool rejects invalid repo names."""
+        tool = RepoSearchTool(config=MagicMock())
+
+        with pytest.raises(ToolInputError, match="owner/repo"):
+            await tool.execute(repo="owner-only", query="test")
+
+    @pytest.mark.asyncio
+    async def test_repo_search_tool_rejects_invalid_language(self):
+        """Test RepoSearchTool rejects unsupported languages."""
+        tool = RepoSearchTool(config=MagicMock())
+
+        with pytest.raises(ToolInputError, match="language"):
+            await tool.execute(repo="owner/repo", query="test", language="fr")
+
 
 # ========== Test RepoTreeTool ==========
 
@@ -476,6 +508,14 @@ class TestRepoTreeTool:
             call_kwargs = mock_client.tree.call_args.kwargs
             assert call_kwargs["depth"] == 3
 
+    @pytest.mark.asyncio
+    async def test_repo_tree_tool_rejects_invalid_depth(self):
+        """Test RepoTreeTool rejects depth values below 1."""
+        tool = RepoTreeTool(config=MagicMock())
+
+        with pytest.raises(ToolInputError, match="depth"):
+            await tool.execute(repo="owner/repo", depth=0)
+
 
 # ========== Test RepoReadTool ==========
 
@@ -566,3 +606,11 @@ class TestRepoReadTool:
             result = await tool.execute(repo="owner/repo", file_path="nonexistent.py")
 
             assert "Error" in result or "Failed" in result
+
+    @pytest.mark.asyncio
+    async def test_repo_read_tool_rejects_empty_file_path(self):
+        """Test RepoReadTool rejects empty file paths."""
+        tool = RepoReadTool(config=MagicMock())
+
+        with pytest.raises(ToolInputError, match="file_path"):
+            await tool.execute(repo="owner/repo", file_path="   ")

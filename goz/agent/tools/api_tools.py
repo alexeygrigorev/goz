@@ -11,10 +11,28 @@ from __future__ import annotations
 
 from typing import Any
 
-from goz.agent.tools.base import BaseTool
+from goz.agent.tools.base import BaseTool, ToolInputError
 from goz.api.search import SearchClient
 from goz.api.reader import ReaderClient
 from goz.api.repo import RepoClient
+
+
+def _require_non_empty_string(value: str, field_name: str) -> str:
+    """Validate a required string argument."""
+    if not value.strip():
+        raise ToolInputError(f"Field '{field_name}' cannot be empty")
+    return value.strip()
+
+
+def _validate_repo_name(repo: str) -> str:
+    """Validate GitHub repo name format at the tool boundary."""
+    repo = _require_non_empty_string(repo, "repo")
+    parts = repo.split("/")
+    if len(parts) != 2 or not all(parts):
+        raise ToolInputError(
+            f"Field 'repo': expected 'owner/repo' format, got {repo!r}"
+        )
+    return repo
 
 
 class SearchTool(BaseTool):
@@ -74,7 +92,18 @@ class SearchTool(BaseTool):
         Returns:
             Formatted search results as string
         """
-        self.validate_input(self.input_schema, {"query": query})
+        data = {"query": query}
+        if count is not None:
+            data["count"] = count
+        if domain is not None:
+            data["domain"] = domain
+        self.validate_input(self.input_schema, data)
+
+        query = _require_non_empty_string(query, "query")
+        if count is not None and not 1 <= count <= 50:
+            raise ToolInputError("Field 'count' must be between 1 and 50")
+        if domain is not None:
+            domain = _require_non_empty_string(domain, "domain")
 
         try:
             results = await self.client.search(
@@ -84,10 +113,10 @@ class SearchTool(BaseTool):
                 recency_filter=None,
             )
         except Exception as e:
-            return f"Error searching: {e}"
+            return f"Search Failed for {query!r}: {e}"
 
         if not results:
-            return f"No results found for query: {query}"
+            return f"Search results for {query!r}\n{'=' * 60}\nNo results found."
 
         # Format output
         output = [f"Found {len(results)} results for \"{query}\""]
@@ -147,6 +176,11 @@ class ReadTool(BaseTool):
             Formatted page content as string
         """
         self.validate_input(self.input_schema, {"url": url})
+        url = _require_non_empty_string(url, "url")
+        if not (url.startswith("http://") or url.startswith("https://")):
+            raise ToolInputError(
+                "Field 'url' must start with 'http://' or 'https://'"
+            )
 
         try:
             result = await self.client.read(
@@ -158,7 +192,7 @@ class ReadTool(BaseTool):
                 with_links_summary=False,
             )
         except Exception as e:
-            return f"Error fetching page: {e}"
+            return f"Read Failed for {url}: {e}"
 
         # Format output
         output = [f"Fetched: {url}"]
@@ -230,7 +264,15 @@ class RepoSearchTool(BaseTool):
         Returns:
             Formatted search results as string
         """
-        self.validate_input(self.input_schema, {"repo": repo, "query": query})
+        data = {"repo": repo, "query": query}
+        if language is not None:
+            data["language"] = language
+        self.validate_input(self.input_schema, data)
+
+        repo = _validate_repo_name(repo)
+        query = _require_non_empty_string(query, "query")
+        if language is not None and language not in {"en", "zh"}:
+            raise ToolInputError("Field 'language' must be one of: en, zh")
 
         try:
             results = await self.client.search(
@@ -239,7 +281,7 @@ class RepoSearchTool(BaseTool):
                 language=language,
             )
         except Exception as e:
-            return f"Error searching repository: {e}"
+            return f"Repository Search Failed for {repo} ({query!r}): {e}"
 
         # Format output
         output = [f"Search results for \"{query}\" in {repo}"]
@@ -318,7 +360,18 @@ class RepoTreeTool(BaseTool):
         Returns:
             Formatted tree structure as string
         """
-        self.validate_input(self.input_schema, {"repo": repo})
+        data = {"repo": repo}
+        if path is not None:
+            data["path"] = path
+        if depth is not None:
+            data["depth"] = depth
+        self.validate_input(self.input_schema, data)
+
+        repo = _validate_repo_name(repo)
+        if path is not None:
+            path = _require_non_empty_string(path, "path")
+        if depth < 1:
+            raise ToolInputError("Field 'depth' must be at least 1")
 
         try:
             result = await self.client.tree(
@@ -327,7 +380,7 @@ class RepoTreeTool(BaseTool):
                 depth=depth,
             )
         except Exception as e:
-            return f"Error getting repository structure: {e}"
+            return f"Repository Tree Failed for {repo}: {e}"
 
         # Return the tree structure directly
         # The RepoClient already formats it nicely
@@ -382,6 +435,8 @@ class RepoReadTool(BaseTool):
             File contents as string
         """
         self.validate_input(self.input_schema, {"repo": repo, "file_path": file_path})
+        repo = _validate_repo_name(repo)
+        file_path = _require_non_empty_string(file_path, "file_path")
 
         try:
             content = await self.client.read(
@@ -389,7 +444,7 @@ class RepoReadTool(BaseTool):
                 file_path=file_path,
             )
         except Exception as e:
-            return f"Error reading file: {e}"
+            return f"Repository Read Failed for {repo}/{file_path}: {e}"
 
         # Format output
         output = [f"File: {repo}/{file_path}"]
