@@ -78,6 +78,28 @@ class TestBasicSearch:
                 assert all(isinstance(r, SearchResult) for r in results)
 
     @pytest.mark.asyncio
+    async def test_search_rewrites_legacy_coding_base_url_to_general_search_api(self):
+        """E2E: Search uses `/api/paas/v4/web_search` for the direct HTTP route."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"search_result": []}
+
+        mock_async_client = MockAsyncClient(mock_response)
+
+        mock_config = MagicMock()
+        mock_config.zai_token = "test-token"
+        mock_config.coding_base_url = "https://api.z.ai/api/coding/paas/v4"
+        mock_config.timeout = 120
+
+        with patch("goz.api.search.load_config", return_value=mock_config):
+            with patch("goz.api.search.httpx.AsyncClient", return_value=mock_async_client):
+                client = SearchClient()
+                await client.search("test query")
+
+                call_args = mock_async_client.post.call_args
+                assert call_args[0][0] == "https://api.z.ai/api/paas/v4/web_search"
+
+    @pytest.mark.asyncio
     async def test_search_results_contain_required_fields(self):
         """E2E: Search results contain rank, title, url, summary fields."""
         mock_response = MagicMock()

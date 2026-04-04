@@ -30,6 +30,9 @@ BASE_DELAY = 1.0
 # Logger for search requests
 logger = logging.getLogger(__name__)
 
+SEARCH_BASE_URL_FRAGMENT = "/api/paas/v4"
+LEGACY_SEARCH_BASE_URL_FRAGMENT = "/api/coding/paas/v4"
+
 
 @dataclass
 class SearchResult:
@@ -99,6 +102,22 @@ class SearchClient:
         self.config = config or load_config()
         self.enable_logging = False
 
+    def _search_endpoint(self) -> str:
+        """Return the current direct HTTP search endpoint.
+
+        Z.AI's current Web Search docs use the general `/api/paas/v4/web_search`
+        route, while older clients used `/api/coding/paas/v4/web_search`.
+        Normalize the legacy base so search keeps working without changing the
+        user's whole coding base URL.
+        """
+        base_url = self.config.coding_base_url.rstrip("/")
+        if LEGACY_SEARCH_BASE_URL_FRAGMENT in base_url:
+            base_url = base_url.replace(
+                LEGACY_SEARCH_BASE_URL_FRAGMENT,
+                SEARCH_BASE_URL_FRAGMENT,
+            )
+        return f"{base_url}/web_search"
+
     async def _http_request(
         self,
         body: dict[str, Any],
@@ -123,7 +142,7 @@ class SearchClient:
             "Accept": "application/json",
         }
         timeout = self.config.timeout
-        endpoint = f"{self.config.coding_base_url}/web_search"
+        endpoint = self._search_endpoint()
 
         last_error = None
 
@@ -237,45 +256,71 @@ class SearchClient:
         validate_search_params(query, count, recency_filter)
 
         # Build request body
-        body: dict[str, Any] = {
-            "search_engine": "search-prime",
-            "search_query": query,
-        }
-
-        if count is not None:
-            body["count"] = count
-
-        if domain_filter is not None:
-            body["search_domain_filter"] = domain_filter
-
-        if recency_filter is not None:
-            body["search_recency_filter"] = recency_filter
+        body = build_search_request_body(
+            query=query,
+            count=count,
+            domain_filter=domain_filter,
+            recency_filter=recency_filter,
+        )
 
         # Make HTTP request
         results_data = await self._http_request(body)
 
-        # Parse results
-        results = []
-        if isinstance(results_data, list):
-            for idx, item in enumerate(results_data):
-                results.append(SearchResult(
-                    rank=idx + 1,
-                    title=item.get("title", ""),
-                    url=item.get("link", ""),
-                    summary=item.get("content", ""),
-                    source=item.get("media"),
-                    date=item.get("publish_date"),
-                ))
-        elif isinstance(results_data, dict):
-            # Single result or error response
-            if "link" in results_data:
-                results.append(SearchResult(
-                    rank=1,
-                    title=results_data.get("title", ""),
-                    url=results_data.get("link", ""),
-                    summary=results_data.get("content", ""),
-                    source=results_data.get("media"),
-                    date=results_data.get("publish_date"),
-                ))
+        return limit_results(parse_search_response(results_data), count)
 
+
+def build_search_request_body(
+    query: str,
+    count: int | None = None,
+    domain_filter: str | None = None,
+    recency_filter: RecencyFilter | None = None,
+) -> dict[str, Any]:
+    """Build a Web Search API request body."""
+    body: dict[str, Any] = {
+        "search_engine": "search-prime",
+        "search_query": query,
+    }
+
+    if count is not None:
+        body["count"] = count
+
+    if domain_filter is not None:
+        body["search_domain_filter"] = domain_filter
+
+    if recency_filter is not None:
+        body["search_recency_filter"] = recency_filter
+
+    return body
+
+
+def parse_search_response(response: Any) -> list[SearchResult]:
+    """Parse a Web Search API response into SearchResult objects."""
+    if isinstance(response, dict) and isinstance(response.get("search_result"), list):
+        items = response["search_result"]
+    elif isinstance(response, list):
+        items = response
+    elif isinstance(response, dict) and "link" in response:
+        items = [response]
+    else:
+        return []
+
+    results: list[SearchResult] = []
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        results.append(SearchResult(
+            rank=idx + 1,
+            title=item.get("title", ""),
+            url=item.get("link", ""),
+            summary=item.get("content", ""),
+            source=item.get("media"),
+            date=item.get("publish_date"),
+        ))
+    return results
+
+
+def limit_results(results: list[SearchResult], count: int | None) -> list[SearchResult]:
+    """Return the first `count` results when a limit is provided."""
+    if count is None:
         return results
+    return results[:count]
