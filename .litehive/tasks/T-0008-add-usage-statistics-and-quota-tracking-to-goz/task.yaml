@@ -1,0 +1,120 @@
+id: T-0008
+slug: add-usage-statistics-and-quota-tracking-to-goz
+title: Add usage statistics and quota tracking to goz
+depends_on: []
+task_type: null
+engine: goz
+model: null
+mode: implementation
+status: done
+pipeline_status: done
+priority: medium
+pm_complexity: moderate
+planned_effort: m
+created_at: '2026-04-04T21:20:59+00:00'
+updated_at: '2026-04-04T22:17:07+00:00'
+goal: Track and display Z.AI token usage, costs, and quota limits. (1) Capture per-request
+  usage from Anthropic SDK streaming responses (message_start.usage, message_delta.usage).
+  (2) Call Z.AI monitor endpoints (api.z.ai/api/monitor/usage/quota/limit and model-usage)
+  for quota dashboard. (3) Emit usage in JSONL step_finish events so litehive can
+  track it. (4) Add a 'goz usage' CLI command showing current session tokens, 5-hour
+  quota remaining, and 7/30-day aggregates.
+acceptance_criteria:
+- chat_client.py extracts usage.input_tokens and usage.output_tokens from streaming
+  message_start/message_delta events
+- Per-turn token counts accumulated in session state
+- step_finish JSONL event includes tokens (input, output, cache_read, cache_write)
+  and cost
+- goz usage command calls api.z.ai/api/monitor/usage/quota/limit and displays 5-hour
+  quota remaining
+- goz usage command calls api.z.ai/api/monitor/usage/model-usage and shows 7-day and
+  30-day aggregates
+- goz run shows per-turn token usage in JSONL output compatible with litehive EngineUsageObservation
+- Quota/rate limit errors (Z.AI codes 1302/1305/1308/1310) are detected and reported
+  clearly
+constraints: []
+plan: []
+human_checkpoints: []
+subagents:
+- id: SA-0001
+  role: planner
+  engine: goz
+  status: failed
+  path: subagents/SA-0001-planner
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0002
+  role: swe
+  engine: goz
+  status: failed
+  path: subagents/SA-0002-swe
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0003
+  role: recovery
+  engine: opencode
+  status: completed
+  path: subagents/SA-0003-recovery
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0004
+  role: qa
+  engine: opencode
+  status: interrupted
+  path: subagents/SA-0004-qa
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0005
+  role: recovery
+  engine: goz
+  status: completed
+  path: subagents/SA-0005-recovery
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0006
+  role: reviewer
+  engine: goz
+  status: failed
+  path: subagents/SA-0006-reviewer
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0007
+  role: swe
+  engine: goz
+  status: interrupted
+  path: subagents/SA-0007-swe
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0008
+  role: recovery
+  engine: goz
+  status: completed
+  path: subagents/SA-0008-recovery
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0009
+  role: qa
+  engine: goz
+  status: completed
+  path: subagents/SA-0009-qa
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0010
+  role: reviewer
+  engine: goz
+  status: completed
+  path: subagents/SA-0010-reviewer
+  sandboxed: false
+  sandbox_summary: host
+git:
+  auto_commit: true
+  commit_message: 'litehive: complete T-0008 add-usage-statistics-and-quota-tracking-to-goz'
+  commit_sha: 25d2c419e41c7801001758220fad42c04971fc6f
+  checkpoint_base_sha: null
+  checkpoint_attempts: 0
+  rolled_back_checkpoint_attempt: null
+  worktree_path: null
+retry_policy:
+  max_retries: null
+created_from: null
+upstream_origin: null

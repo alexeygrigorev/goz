@@ -1,8 +1,8 @@
 active_task_id: null
-mode: implementation
+mode: idle
 queue:
-- T-0002
 - T-0003
 - T-0004
+- T-0002
 pool_stop_reason: null
-next_task_number: 7
+next_task_number: 16
