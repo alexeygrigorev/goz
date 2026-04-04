@@ -13,9 +13,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
 
-from goz.agent.chat_client import ChatClient, Chunk, ContentBlockDelta, ContentBlockStart, ContentBlockStop
+from goz.agent.chat_client import (
+    ChatClient,
+    Chunk,
+    ContentBlockDelta,
+    ContentBlockStart,
+    ContentBlockStop,
+    MessageStart,
+    MessageStop,
+    UsageDelta,
+)
 from goz.agent.history import ChatHistory, ChatMessage, ToolCall
 from goz.agent.sessions import Session, SessionManager
+from goz.agent.usage import UsageAccumulator
 from goz.agent.tools import (
     BashTool,
     CreateFileTool,
@@ -35,12 +45,6 @@ from goz.config import Config, load_config
 
 MAX_ITERATIONS: int | None = None  # No limit by default
 DEFAULT_AGENT_TYPE = "engine"
-STEP_FINISH_TOKENS = {
-    "input": 0,
-    "output": 0,
-    "cache_creation": 0,
-    "cache_read": 0,
-}
 STAGE_RESULT_INSTRUCTION = """
 
 End your final answer with:
@@ -95,13 +99,19 @@ def emit_error_event(name: str, message: str, stdout: TextIO) -> None:
     )
 
 
-def emit_step_finish_event(stdout: TextIO, session_id: str) -> None:
+def emit_step_finish_event(
+    stdout: TextIO,
+    session_id: str,
+    *,
+    tokens: dict[str, int] | None = None,
+    cost: float = 0.0,
+) -> None:
     _emit_event(
         {
             "type": "step_finish",
             "part": {
-                "tokens": dict(STEP_FINISH_TOKENS),
-                "cost": 0,
+                "tokens": tokens or {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0},
+                "cost": cost,
                 "session_id": session_id,
                 "continuation": {"resume_session_id": session_id},
             },
@@ -204,7 +214,9 @@ def _parse_tool_calls(chunks: list[Chunk]) -> list[dict[str, Any]]:
     return tool_calls
 
 
-async def _execute_tool_call(tool_registry: ToolRegistry, tool_call: dict[str, Any]) -> tuple[str, bool]:
+async def _execute_tool_call(
+    tool_registry: ToolRegistry, tool_call: dict[str, Any]
+) -> tuple[str, bool]:
     tool = tool_registry.get(tool_call["name"])
     if tool is None:
         return f"Tool not found: {tool_call['name']}", True
@@ -278,12 +290,14 @@ async def run_prompt_jsonl(
 
     iteration = 0
     try:
+        usage_acc = UsageAccumulator()
         while True:
             iteration += 1
             if MAX_ITERATIONS is not None and iteration > MAX_ITERATIONS:
                 break
             chunks: list[Chunk] = []
             assistant_chunks: list[str] = []
+            usage_acc.begin_turn()
 
             stream = client.chat_completion(
                 messages=history.to_api_format(),
@@ -293,14 +307,39 @@ async def run_prompt_jsonl(
 
             async for chunk in stream:
                 chunks.append(chunk)
-                if isinstance(chunk, ContentBlockDelta) and chunk.type == "text_delta" and chunk.text:
+                if (
+                    isinstance(chunk, ContentBlockDelta)
+                    and chunk.type == "text_delta"
+                    and chunk.text
+                ):
                     assistant_chunks.append(chunk.text)
                     emit_text_event(chunk.text, stdout)
+                elif isinstance(chunk, MessageStart):
+                    usage_obj = type(
+                        "U",
+                        (),
+                        {
+                            "input_tokens": chunk.usage_input_tokens,
+                            "cache_read_input_tokens": chunk.usage_cache_read,
+                            "cache_creation_input_tokens": chunk.usage_cache_creation,
+                        },
+                    )()
+                    usage_acc.apply_message_start(usage_obj)
+                elif isinstance(chunk, UsageDelta):
+                    usage_obj = type("U", (), {"output_tokens": chunk.output_tokens})()
+                    usage_acc.apply_message_delta(usage_obj)
+
+            snap = usage_acc.finalise_turn()
 
             tool_calls = _parse_tool_calls(chunks)
             if not tool_calls:
                 history.add(ChatMessage(role="assistant", content="".join(assistant_chunks)))
-                emit_step_finish_event(stdout, state.session_id)
+                emit_step_finish_event(
+                    stdout,
+                    state.session_id,
+                    tokens=snap.to_dict(),
+                    cost=snap.cost_usd(model=config.chat_model),
+                )
                 return 0
 
             history.add(
@@ -329,7 +368,9 @@ async def run_prompt_jsonl(
                     )
                 )
     except asyncio.CancelledError:
-        emit_error_event("Interrupted", f"Run interrupted by {interrupted_by['signal'] or 'signal'}", stdout)
+        emit_error_event(
+            "Interrupted", f"Run interrupted by {interrupted_by['signal'] or 'signal'}", stdout
+        )
         return 1
     finally:
         for signum in (signal.SIGTERM, signal.SIGINT):
@@ -367,7 +408,9 @@ Examples:
     parser.add_argument("--format", "-f", choices=["json"], default="json", help="Output format")
     parser.add_argument("--dir", dest="working_dir", help="Working directory for the run")
     parser.add_argument("--model", help="Override chat model")
-    parser.add_argument("--resume-session", dest="resume_session_id", help="Resume a saved session by ID")
+    parser.add_argument(
+        "--resume-session", dest="resume_session_id", help="Resume a saved session by ID"
+    )
     parser.add_argument("prompt", nargs="*", help="Prompt to execute")
     parsed = parser.parse_args(args)
 

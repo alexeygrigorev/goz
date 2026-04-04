@@ -157,8 +157,14 @@ File constraints:
 
     # Check if first positional arg is a known subcommand
     known_modes = {
-        "analyze", "ui-to-code", "extract-text",
-        "diagnose-error", "diagram", "chart", "diff", "video"
+        "analyze",
+        "ui-to-code",
+        "extract-text",
+        "diagnose-error",
+        "diagram",
+        "chart",
+        "diff",
+        "video",
     }
 
     if positional[0] in known_modes:
@@ -236,8 +242,7 @@ File constraints:
 
     if mode == "diagram" and flags.get("type"):
         effective_prompt = (
-            f"{effective_prompt}\n\n"
-            f"This is a {flags['type']} diagram. Use appropriate terminology."
+            f"{effective_prompt}\n\nThis is a {flags['type']} diagram. Use appropriate terminology."
         )
 
     if mode == "chart" and flags.get("focus"):
@@ -247,7 +252,7 @@ File constraints:
             "comparisons": "Focus on comparing different data series and values.",
             "insights": "Focus on extracting key insights and actionable conclusions.",
         }
-        focus_prompt = focus_prompts.get(flags['focus'], '')
+        focus_prompt = focus_prompts.get(flags["focus"], "")
         if focus_prompt:
             effective_prompt = f"{effective_prompt}\n\n{focus_prompt}"
 
@@ -278,11 +283,10 @@ File constraints:
             else:
                 # Show "thinking" animation while waiting for first chunk
                 import threading
+
                 stop_animation = threading.Event()
                 animation_thread = threading.Thread(
-                    target=_show_thinking_animation,
-                    args=(stop_animation,),
-                    daemon=True
+                    target=_show_thinking_animation, args=(stop_animation,), daemon=True
                 )
                 animation_thread.start()
 
@@ -348,9 +352,12 @@ Examples:
     parser.add_argument("query", help="Search query")
     parser.add_argument("--count", "-c", type=int, help="Number of results")
     parser.add_argument("--domain", "-d", help="Filter to domain")
-    parser.add_argument("--recency", "-r",
-                        choices=["oneDay", "oneWeek", "oneMonth", "oneYear", "noLimit"],
-                        help="Time filter")
+    parser.add_argument(
+        "--recency",
+        "-r",
+        choices=["oneDay", "oneWeek", "oneMonth", "oneYear", "noLimit"],
+        help="Time filter",
+    )
 
     parsed = parser.parse_args(args)
 
@@ -414,8 +421,9 @@ Examples:
 
     parser = argparse.ArgumentParser(prog="goz read", add_help=False)
     parser.add_argument("url", help="URL to read")
-    parser.add_argument("--format", "-f", choices=["markdown", "text"],
-                        default="markdown", help="Output format")
+    parser.add_argument(
+        "--format", "-f", choices=["markdown", "text"], default="markdown", help="Output format"
+    )
     parser.add_argument("--timeout", "-t", type=int, help="Timeout in seconds")
 
     parsed = parser.parse_args(args)
@@ -484,7 +492,9 @@ Notes:
         # goz repo search <owner/repo> <query> [--language <lang>]
         if len(args) < 3:
             print("Error: repo search requires <owner/repo> and <query>", file=sys.stderr)
-            print("Usage: goz repo search <owner/repo> <query> [--language <lang>]", file=sys.stderr)
+            print(
+                "Usage: goz repo search <owner/repo> <query> [--language <lang>]", file=sys.stderr
+            )
             sys.exit(1)
 
         repo = args[1]
@@ -523,7 +533,9 @@ Notes:
         # goz repo tree <owner/repo> [--path <path>] [--depth <n>]
         if len(args) < 2:
             print("Error: repo tree requires <owner/repo>", file=sys.stderr)
-            print("Usage: goz repo tree <owner/repo> [--path <path>] [--depth <n>]", file=sys.stderr)
+            print(
+                "Usage: goz repo tree <owner/repo> [--path <path>] [--depth <n>]", file=sys.stderr
+            )
             sys.exit(1)
 
         repo = args[1]
@@ -676,7 +688,9 @@ Options:
     parser.add_argument("tool", help="Tool name to call")
     parser.add_argument("--json", dest="json_payload", help="Inline JSON or @file reference")
     parser.add_argument("--stdin", action="store_true", help="Read JSON from stdin")
-    parser.add_argument("--dry-run", action="store_true", help="Preview the request without calling")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview the request without calling"
+    )
     parsed = parser.parse_args(args)
 
     try:
@@ -848,6 +862,7 @@ Runs diagnostic checks:
         # Check 3: API connectivity
         try:
             import httpx
+
             async with httpx.AsyncClient(timeout=5.0) as client:
                 await client.get(config.zai_base_url)
                 print(f"  [PASS] Base URL reachable ({config.zai_base_url})")
@@ -875,6 +890,7 @@ def cmd_tui(args: list[str]) -> None:
         args: Remaining arguments (ignored)
     """
     from goz.tui import run_tui
+
     run_tui()
 
 
@@ -902,6 +918,7 @@ Commands:
   call      Call an MCP tool directly
   config    Manage configuration
   doctor    Environment + connectivity checks
+  usage     Show token usage and quota
   tui       Launch interactive terminal UI
 
 Global Options:
@@ -919,6 +936,7 @@ For command-specific help:
   goz call --help
   goz config --help
   goz doctor --help
+  goz usage --help
 
 Examples:
   goz vision analyze https://example.com/image.png
@@ -972,6 +990,7 @@ With no command, launches the interactive TUI.
     if args.command is None:
         # No command = launch AGENT MODE (interactive coding agent)
         from goz.agent.tui import run_agent_app
+
         run_agent_app(session_id=args.load, agent_type=args.agent)
         return
 
@@ -996,6 +1015,10 @@ With no command, launches the interactive TUI.
         asyncio.run(cmd_call(args.args))
     elif args.command == "doctor":
         cmd_doctor(args.args)
+    elif args.command == "usage":
+        from goz.cli.usage import cmd_usage as _cmd_usage
+
+        asyncio.run(_cmd_usage(args.args))
     elif args.command in ("tui", "ui"):
         cmd_tui(args.args)
     else:

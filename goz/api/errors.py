@@ -158,3 +158,63 @@ class ValidationError(ZaiError):
             code="VALIDATION_ERROR",
             help="Check your input parameters and try again.",
         )
+
+
+# Z.AI quota/rate-limit error codes
+QUOTA_ERROR_CODES = {
+    1302: "QuotaExceededError",
+    1305: "RateLimitError",
+    1308: "TokenBudgetExceededError",
+    1310: "ConcurrentRequestLimitError",
+}
+
+QUOTA_ERROR_DESCRIPTIONS = {
+    1302: "API quota exceeded. Your usage has reached the plan limit.",
+    1305: "Rate limit hit. Too many requests in a short time window.",
+    1308: "Token budget exceeded for this billing period.",
+    1310: "Concurrent request limit reached. Wait for in-flight requests to finish.",
+}
+
+QUOTA_ERROR_HELP = {
+    1302: "Check your usage with 'goz usage' and consider upgrading your plan.",
+    1305: "Wait a moment before retrying, or reduce request volume.",
+    1308: "Reduce token usage or wait for the next billing period to reset.",
+    1310: "Wait for current requests to finish before sending new ones.",
+}
+
+
+class QuotaError(ZaiError):
+    """Quota or rate-limit error from Z.AI (error codes 1302/1305/1308/1310).
+
+    This error is raised when the Z.AI API returns a quota-related error code,
+    indicating that usage limits have been exceeded.
+    """
+
+    def __init__(self, message: str, zai_code: int = 1302, statusCode: int = 429) -> None:
+        """Initialize QuotaError.
+
+        Args:
+            message: Human-readable error message from the API
+            zai_code: Z.AI-specific error code (1302, 1305, 1308, or 1310)
+            statusCode: HTTP status code (typically 429)
+        """
+        code_name = QUOTA_ERROR_CODES.get(zai_code, "QUOTA_ERROR")
+        help_text = QUOTA_ERROR_HELP.get(zai_code, "Check your usage with 'goz usage'.")
+        super().__init__(
+            message=message,
+            code=code_name,
+            statusCode=statusCode,
+            help=help_text,
+        )
+        self.zai_code = zai_code
+
+
+def is_quota_error(error: ZaiError) -> bool:
+    """Check if an error is a quota-related error (codes 1302/1305/1308/1310)."""
+    if isinstance(error, QuotaError):
+        return True
+    # Also check if a generic error carries a quota code in its message
+    for code in QUOTA_ERROR_CODES:
+        if f"[{code}]" in str(error) or f"code {code}" in str(error).lower():
+            return True
+    return False
