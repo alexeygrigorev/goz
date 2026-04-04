@@ -182,6 +182,22 @@ class TestBashToolWorkingDirectory:
         # Should contain current directory
         assert cwd in result.stdout or cwd.replace("\\", "/") in result.stdout
 
+    @pytest.mark.asyncio
+    async def test_execute_relative_cwd_resolves_against_working_dir(self):
+        """Test relative cwd is resolved against tool working_dir."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            nested = os.path.join(tmpdir, "nested")
+            os.mkdir(nested)
+            tool = BashTool(working_dir=tmpdir)
+            result = await tool.execute(
+                command="echo %cd%" if platform.system() == "Windows" else "echo $PWD",
+                cwd="nested",
+            )
+            assert result.exit_code == 0
+            assert nested in result.stdout or nested.replace("\\", "/") in result.stdout
+
 
 class TestBashToolTimeout:
     """Unit Tests: BashTool supports timeout parameter."""
@@ -249,6 +265,13 @@ class TestBashToolDestructiveCommands:
         assert tool._is_destructive("cat file.txt") is False
         assert tool._is_destructive("git status") is False
 
+    @pytest.mark.asyncio
+    async def test_execute_rejects_destructive_command(self):
+        """Test destructive commands are refused."""
+        tool = BashTool()
+        with pytest.raises(ToolExecutionError, match="Refusing to run destructive command"):
+            await tool.execute(command="rm -rf /")
+
 
 class TestBashToolCrossPlatform:
     """Unit Tests: BashTool works across platforms."""
@@ -302,6 +325,14 @@ class TestBashToolStreaming:
             async for line in tool.execute_stream(command="echo test", cwd=tmpdir):
                 lines.append(line)
             assert len(lines) > 0
+
+    @pytest.mark.asyncio
+    async def test_execute_stream_rejects_destructive_command(self):
+        """Test streaming path also blocks destructive commands."""
+        tool = BashTool()
+        with pytest.raises(ToolExecutionError, match="Refusing to run destructive command"):
+            async for _ in tool.execute_stream(command="rm -rf /"):
+                pass
 
 
 class TestBashToolGracefulShutdown:

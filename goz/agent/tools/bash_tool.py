@@ -18,6 +18,7 @@ import re
 import shutil
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import AsyncIterator
 
 from goz.agent.tools.base import BaseTool, ToolExecutionError
@@ -93,6 +94,13 @@ class BashTool(BaseTool):
         r"del\s+",                # Windows delete
     ]
 
+    def _resolve_cwd(self, cwd: str | None) -> str:
+        """Resolve cwd relative to the tool working directory."""
+        path = Path(cwd) if cwd is not None else Path(self.working_dir)
+        if not path.is_absolute():
+            path = Path(self.working_dir) / path
+        return str(path.resolve())
+
     def _get_shell_command(self) -> list[str]:
         """Get appropriate shell command for platform.
 
@@ -140,14 +148,20 @@ class BashTool(BaseTool):
         Raises:
             ToolExecutionError: If command times out or execution fails
         """
-        # Warn about destructive commands
-        if self._is_destructive(command):
-            # In a real implementation, this might prompt for confirmation
-            # For now, we'll just note it in the output
-            pass
+        self.validate_input(
+            self.input_schema,
+            {"command": command, **({"cwd": cwd} if cwd is not None else {}), "timeout": timeout},
+        )
 
-        # Determine working directory
-        work_dir = cwd or self.working_dir
+        if timeout <= 0:
+            raise ToolExecutionError("Timeout must be greater than 0 seconds")
+
+        if self._is_destructive(command):
+            raise ToolExecutionError(
+                "Refusing to run destructive command without confirmation"
+            )
+
+        work_dir = self._resolve_cwd(cwd)
 
         # Get platform-appropriate shell command
         shell_cmd = self._get_shell_command()
@@ -236,8 +250,17 @@ class BashTool(BaseTool):
         Raises:
             ToolExecutionError: If command execution fails
         """
-        # Determine working directory
-        work_dir = cwd or self.working_dir
+        self.validate_input(
+            self.input_schema,
+            {"command": command, **({"cwd": cwd} if cwd is not None else {})},
+        )
+
+        if self._is_destructive(command):
+            raise ToolExecutionError(
+                "Refusing to run destructive command without confirmation"
+            )
+
+        work_dir = self._resolve_cwd(cwd)
 
         # Get platform-appropriate shell command
         shell_cmd = self._get_shell_command()
