@@ -1,10 +1,12 @@
 """Main entry point for the goz CLI."""
 
 import asyncio
+import json
 import itertools
 import sys
 import threading
 import time
+from pathlib import Path
 
 from goz import __version__
 
@@ -26,6 +28,37 @@ def _show_thinking_animation(stop_event: threading.Event) -> None:
     finally:
         # Clear the animation line when done
         print("\r" + " " * 20 + "\r", end="", flush=True)
+
+
+def _print_json(data: object) -> None:
+    """Print JSON with stable formatting."""
+    print(json.dumps(data, indent=2, ensure_ascii=True))
+
+
+def _load_json_value(raw_value: str) -> object:
+    """Load JSON from an inline value or @file reference."""
+    source = raw_value
+    if raw_value.startswith("@"):
+        source = Path(raw_value[1:]).read_text()
+
+    try:
+        return json.loads(source)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON: {e}") from e
+
+
+def _load_call_arguments(json_arg: str | None, use_stdin: bool) -> dict:
+    """Resolve call arguments from --json or --stdin."""
+    if json_arg is not None and use_stdin:
+        raise ValueError("Use either --json or --stdin, not both")
+
+    if json_arg is None and not use_stdin:
+        return {}
+
+    payload = _load_json_value(sys.stdin.read() if use_stdin else json_arg or "{}")
+    if not isinstance(payload, dict):
+        raise ValueError("Tool arguments must be a JSON object")
+    return payload
 
 
 async def cmd_vision(args: list[str]) -> None:
@@ -555,6 +588,123 @@ Notes:
         sys.exit(1)
 
 
+async def cmd_tools(args: list[str]) -> None:
+    """Handle the `goz tools` command."""
+    import argparse
+
+    if args and args[0] in ("--help", "-h", "help"):
+        print("""Tools command usage:
+
+  goz tools [options]
+
+Options:
+  --filter TEXT   Filter tool names by substring
+  --full          Show full tool schemas as JSON
+""")
+        return
+
+    parser = argparse.ArgumentParser(prog="goz tools", add_help=False)
+    parser.add_argument("--filter", dest="name_filter", help="Filter tool names by substring")
+    parser.add_argument("--full", action="store_true", help="Show full tool schemas")
+    parsed = parser.parse_args(args)
+
+    from goz.api.mcp import McpClient
+
+    client = McpClient()
+    try:
+        tools = await client.list_tools()
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if parsed.name_filter:
+        query = parsed.name_filter.lower()
+        tools = [tool for tool in tools if query in str(tool.get("name", "")).lower()]
+
+    if parsed.full:
+        _print_json(tools)
+        return
+
+    for tool in tools:
+        name = tool.get("name")
+        if name:
+            print(name)
+
+
+async def cmd_tool(args: list[str]) -> None:
+    """Handle the `goz tool <name>` command."""
+    if not args or args[0] in ("--help", "-h", "help"):
+        print("""Tool command usage:
+
+  goz tool <name>
+""")
+        return
+
+    from goz.api.mcp import McpClient
+
+    client = McpClient()
+    try:
+        tool = await client.get_tool(args[0])
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if tool is None:
+        print(f"Error: Unknown tool '{args[0]}'", file=sys.stderr)
+        sys.exit(1)
+
+    _print_json(tool)
+
+
+async def cmd_call(args: list[str]) -> None:
+    """Handle the `goz call <tool>` command."""
+    import argparse
+
+    if not args or args[0] in ("--help", "-h", "help"):
+        print("""Call command usage:
+
+  goz call <tool> [--json JSON|@file.json] [--stdin] [--dry-run]
+
+Options:
+  --json VALUE    Inline JSON object or @path/to/file.json
+  --stdin         Read JSON object from stdin
+  --dry-run       Print resolved request payload without calling the tool
+""")
+        return
+
+    parser = argparse.ArgumentParser(prog="goz call", add_help=False)
+    parser.add_argument("tool", help="Tool name to call")
+    parser.add_argument("--json", dest="json_payload", help="Inline JSON or @file reference")
+    parser.add_argument("--stdin", action="store_true", help="Read JSON from stdin")
+    parser.add_argument("--dry-run", action="store_true", help="Preview the request without calling")
+    parsed = parser.parse_args(args)
+
+    try:
+        arguments = _load_call_arguments(parsed.json_payload, parsed.stdin)
+    except (OSError, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    request_payload = {
+        "name": parsed.tool,
+        "arguments": arguments,
+    }
+    if parsed.dry_run:
+        _print_json(request_payload)
+        return
+
+    from goz.api.mcp import McpClient
+
+    client = McpClient()
+    try:
+        result = await client.call_tool(parsed.tool, arguments)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    _print_json(result)
+
+
 def cmd_config(args: list[str]) -> None:
     """Handle the `goz config` command.
 
@@ -739,6 +889,9 @@ Commands:
   search    Real-time web search
   read      Fetch and parse web pages
   repo      GitHub repository exploration
+  tools     List MCP tools
+  tool      Show one MCP tool schema
+  call      Call an MCP tool directly
   config    Manage configuration
   doctor    Environment + connectivity checks
   tui       Launch interactive terminal UI
@@ -752,6 +905,9 @@ For command-specific help:
   goz search --help
   goz read --help
   goz repo --help
+  goz tools --help
+  goz tool --help
+  goz call --help
   goz config --help
   goz doctor --help
 
@@ -762,6 +918,9 @@ Examples:
   goz read https://example.com/article
   goz repo tree vercel/next.js
   goz repo search facebook/react "hooks"
+  goz tools --filter vision
+  goz tool zai.vision.analyze_image
+  goz call zai.search.webSearchPrime --json '{"search_query":"test"}'
   goz config get zai_token
 
 With no command, launches the interactive TUI.
@@ -790,7 +949,7 @@ With no command, launches the interactive TUI.
     parser.add_argument(
         "command",
         nargs="?",
-        help="Command to run (config, vision, search, read, repo, doctor, tui)",
+        help="Command to run (config, vision, search, read, repo, tools, tool, call, doctor, tui)",
     )
     parser.add_argument(
         "args",
@@ -817,6 +976,12 @@ With no command, launches the interactive TUI.
         asyncio.run(cmd_read(args.args))
     elif args.command == "repo":
         asyncio.run(cmd_repo(args.args))
+    elif args.command == "tools":
+        asyncio.run(cmd_tools(args.args))
+    elif args.command == "tool":
+        asyncio.run(cmd_tool(args.args))
+    elif args.command == "call":
+        asyncio.run(cmd_call(args.args))
     elif args.command == "doctor":
         cmd_doctor(args.args)
     elif args.command in ("tui", "ui"):
