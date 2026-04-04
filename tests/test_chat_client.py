@@ -390,6 +390,94 @@ class TestChatClientTDD:
 
             assert exc_info.value.statusCode == 429
 
+    @pytest.mark.asyncio
+    async def test_10b_rate_limit_retried_before_success(self, config):
+        """429 errors should retry with exponential backoff and preserve success."""
+        from goz.agent.chat_client import ChatClient
+        import anthropic
+
+        client = ChatClient(config)
+        messages = [{"role": "user", "content": "Hello"}]
+
+        response = MagicMock()
+        response.id = "msg_123"
+        response.model = "test-model"
+        response.content = []
+        response.stop_reason = "end_turn"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 429
+
+        class ErrorContext:
+            async def __aenter__(self):
+                raise anthropic.APIStatusError(
+                    message="Rate limit exceeded",
+                    response=mock_response,
+                    body=None,
+                )
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch.object(client._client, "messages") as mock_messages, \
+             patch("goz.agent.chat_client.asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            mock_messages.create = AsyncMock(side_effect=[
+                anthropic.APIStatusError(
+                    message="Rate limit exceeded",
+                    response=mock_response,
+                    body=None,
+                ),
+                anthropic.APIStatusError(
+                    message="Rate limit exceeded",
+                    response=mock_response,
+                    body=None,
+                ),
+                response,
+            ])
+
+            chunks = []
+            async for chunk in client.chat_completion(messages, stream=False):
+                chunks.append(chunk)
+
+            assert chunks
+            assert mock_messages.create.await_count == 3
+            assert mock_sleep.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_10c_server_error_retries_then_raises(self, config):
+        """5xx errors should retry up to the configured maximum."""
+        from goz.agent.chat_client import ChatClient
+        import anthropic
+
+        client = ChatClient(config)
+        messages = [{"role": "user", "content": "Hello"}]
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+
+        class ErrorContext:
+            async def __aenter__(self):
+                raise anthropic.APIStatusError(
+                    message="Server unavailable",
+                    response=mock_response,
+                    body=None,
+                )
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch.object(client._client, "messages") as mock_messages, \
+             patch("goz.agent.chat_client.asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            mock_messages.stream.side_effect = [ErrorContext(), ErrorContext(), ErrorContext()]
+
+            with pytest.raises(ApiError) as exc_info:
+                async for _ in client.chat_completion(messages):
+                    pass
+
+            assert exc_info.value.statusCode == 500
+            assert mock_messages.stream.call_count == 3
+            assert mock_sleep.await_count == 2
+
     # TEST 11: NetworkError is raised for connection failures
     @pytest.mark.asyncio
     async def test_11_network_error_handling(self, config):
@@ -439,6 +527,34 @@ class TestChatClientTDD:
             with pytest.raises(TimeoutError):
                 async for _ in client.chat_completion(messages):
                     pass
+
+    @pytest.mark.asyncio
+    async def test_12b_timeout_error_includes_retry_guidance_after_exhaustion(self, config):
+        """Timeouts should be retried, then surface a useful final message."""
+        from goz.agent.chat_client import ChatClient
+        from anthropic import APITimeoutError
+
+        client = ChatClient(config)
+        messages = [{"role": "user", "content": "Hello"}]
+
+        class ErrorContext:
+            async def __aenter__(self):
+                raise APITimeoutError("Request timed out")
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch.object(client._client, "messages") as mock_messages, \
+             patch("goz.agent.chat_client.asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            mock_messages.stream.side_effect = [ErrorContext(), ErrorContext(), ErrorContext()]
+
+            with pytest.raises(TimeoutError) as exc_info:
+                async for _ in client.chat_completion(messages):
+                    pass
+
+            assert "timed out" in exc_info.value.message.lower()
+            assert mock_messages.stream.call_count == 3
+            assert mock_sleep.await_count == 2
 
     # TEST 13: Timeout is configurable via config
     def test_13_timeout_configurable(self, config):

@@ -21,6 +21,7 @@ from goz.agent.core import AgentCore
 from goz.agent.history import ChatHistory
 from goz.agent.sessions import Session, SessionManager
 from goz.agent.tui.screens.chat import ChatScreen
+from goz.agent.tui.screens.session import ConfirmScreen
 from goz.config import Config, load_config
 
 
@@ -98,6 +99,7 @@ class AgentApp(App[None]):
         self.session_id: str | None = None
         self.session_manager: SessionManager | None = None
         self._session_dir: Path | None = None
+        self.has_unsaved_changes = False
 
     def _get_session_dir(self) -> Path:
         """Get the session directory for saving/loading sessions.
@@ -120,6 +122,14 @@ class AgentApp(App[None]):
         Acceptance Criteria:
         - AC 5: Handles keyboard shortcuts (q=quit)
         """
+        if self.has_unsaved_changes and self.agent.history.messages:
+            self.push_screen(
+                ConfirmScreen(
+                    message="You have unsaved changes. Quit without saving?",
+                    on_confirm=self.exit,
+                )
+            )
+            return
         self.exit()
 
     async def load_session(self, session_id: str) -> None:
@@ -144,6 +154,7 @@ class AgentApp(App[None]):
         # Restore session metadata
         self.session_id = session.id
         self.current_agent_type = session.agent_type
+        self.has_unsaved_changes = False
 
         # Note: working_directory could be restored with os.chdir(session.working_directory)
         # but we'll skip that to avoid surprising the user
@@ -176,6 +187,7 @@ class AgentApp(App[None]):
 
         # Update session_id
         self.session_id = session_id
+        self.has_unsaved_changes = False
 
     def set_agent_type(self, agent_type: str) -> None:
         """Set the agent type (stub for Issue 29).
@@ -186,3 +198,8 @@ class AgentApp(App[None]):
         # Stub implementation for Issue 29
         # In the future, this will switch between different agent configurations
         self.current_agent_type = agent_type
+        self.has_unsaved_changes = True
+
+    def mark_dirty(self) -> None:
+        """Mark the current session state as modified."""
+        self.has_unsaved_changes = True

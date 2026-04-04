@@ -1,8 +1,11 @@
 """Unit tests for AgentCore (Issue 15)."""
 import pytest
+from unittest.mock import AsyncMock, Mock
 
 from goz.agent.core import AgentCore
 from goz.agent.history import ChatHistory
+from goz.agent.tools.base import ToolInputError
+from goz.api.errors import ApiError
 from goz.config import Config
 
 
@@ -122,3 +125,41 @@ class TestAgentCoreWithDifferentConfigs:
         config = Config(zai_token="test-token", timeout=60)
         agent = AgentCore(config=config)
         assert agent.config.timeout == 60
+
+
+class TestAgentCoreErrorHandling:
+    """Focused tests for tool and API error handling."""
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_call_formats_input_errors(self):
+        """Tool validation failures should be actionable."""
+        config = Config(zai_token="test-token")
+        agent = AgentCore(config=config)
+
+        tool = Mock()
+        tool.execute = AsyncMock(side_effect=ToolInputError("Missing required field: 'path'"))
+        agent.tool_registry.register(type("MockTool", (), {
+            "name": "mock_tool",
+            "description": "mock",
+            "input_schema": {},
+            "execute": tool.execute,
+        })())
+
+        result = await agent._execute_tool_call({"name": "mock_tool", "input": {}})
+        assert "invalid input" in result.lower()
+        assert "path" in result
+
+    @pytest.mark.asyncio
+    async def test_process_turn_preserves_context_after_api_error(self):
+        """Recoverable failures should keep the user message in history."""
+        config = Config(zai_token="test-token")
+        agent = AgentCore(config=config)
+        agent.chat_client.chat_completion = Mock(side_effect=ApiError("Rate limit exceeded", statusCode=429))
+
+        chunks = []
+        async for chunk in agent.process_turn("hello"):
+            chunks.append(chunk)
+
+        assert agent.history.messages[0].role == "user"
+        assert agent.history.messages[0].content == "hello"
+        assert any(msg.role == "assistant" and "rate limit" in msg.content.lower() for msg in agent.history.messages)

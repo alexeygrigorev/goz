@@ -19,7 +19,7 @@ Acceptance Criteria:
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import AsyncIterator, Literal
+from typing import Any, AsyncIterator, Literal
 
 import anthropic
 from anthropic import AsyncAnthropic
@@ -132,6 +132,8 @@ class ChatClient:
             base_url=self.config.zai_base_url,
             timeout=self.config.timeout,
         )
+        self.max_retries = 2
+        self.base_retry_delay = 1.0
 
     async def chat_completion(
         self,
@@ -193,30 +195,67 @@ class ChatClient:
         else:
             params["max_tokens"] = self.config.max_tokens
 
-        try:
-            if stream:
-                # Streaming mode
-                async with self._client.messages.stream(**params) as stream:
-                    async for event in stream:
-                        chunk = self._convert_sse_event_to_chunk(event)
-                        if chunk is not None:
-                            yield chunk
-            else:
-                # Non-streaming mode - convert response to chunks
-                response = await self._client.messages.create(**params)
-                async for chunk in self._response_to_chunks(response):
-                    yield chunk
+        timeout_ms = int(self.config.timeout * 1000)
 
-        except anthropic.AuthenticationError as e:
-            raise AuthError(str(e))
-        except anthropic.APITimeoutError as e:
-            raise TimeoutError(timeoutMs=int(self.config.timeout * 1000))
-        except anthropic.APIConnectionError as e:
-            raise NetworkError(str(e))
-        except anthropic.APIStatusError as e:
-            raise ApiError(str(e), statusCode=e.status_code)
-        except Exception as e:
-            raise ZaiError(f"Unexpected error: {e}")
+        for attempt in range(self.max_retries + 1):
+            try:
+                if stream:
+                    async with self._client.messages.stream(**params) as response_stream:
+                        async for event in response_stream:
+                            chunk = self._convert_sse_event_to_chunk(event)
+                            if chunk is not None:
+                                yield chunk
+                else:
+                    response = await self._client.messages.create(**params)
+                    async for chunk in self._response_to_chunks(response):
+                        yield chunk
+                return
+            except anthropic.AuthenticationError as e:
+                status_code = getattr(getattr(e, "response", None), "status_code", 401)
+                raise AuthError(
+                    "Authentication failed. Check your API token and try again.",
+                    statusCode=status_code,
+                ) from e
+            except anthropic.APITimeoutError as e:
+                timeout_error = TimeoutError(timeoutMs=timeout_ms)
+                if attempt >= self.max_retries:
+                    raise timeout_error from e
+                await self._sleep_before_retry(attempt)
+            except anthropic.APIConnectionError as e:
+                network_error = NetworkError(
+                    "Connection failed while contacting the API. Check your network and retry."
+                )
+                if attempt >= self.max_retries:
+                    raise network_error from e
+                await self._sleep_before_retry(attempt)
+            except anthropic.APIStatusError as e:
+                status_code = getattr(e, "status_code", None) or getattr(
+                    getattr(e, "response", None), "status_code", 500
+                )
+                if status_code in (401, 403):
+                    raise AuthError(
+                        "Authentication failed. Check your API token and try again.",
+                        statusCode=status_code,
+                    ) from e
+
+                if status_code == 429:
+                    api_error = ApiError(
+                        "Rate limit exceeded. Wait a moment and retry, or reduce request volume.",
+                        statusCode=status_code,
+                    )
+                elif status_code >= 500:
+                    api_error = ApiError(
+                        "Server error from the API. Retry shortly; the service may be degraded.",
+                        statusCode=status_code,
+                    )
+                else:
+                    api_error = ApiError(str(e), statusCode=status_code)
+
+                if attempt >= self.max_retries or status_code < 500 and status_code != 429:
+                    raise api_error from e
+                await self._sleep_before_retry(attempt)
+            except Exception as e:
+                raise ZaiError(f"Unexpected error: {e}") from e
 
     def _convert_sse_event_to_chunk(self, event: anthropic.types.RawMessageStreamEvent) -> Chunk | None:
         """Convert Anthropic SSE event to our Chunk type.
@@ -311,6 +350,10 @@ class ChatClient:
 
         # Yield message stop
         yield MessageStop(stop_reason=response.stop_reason)
+
+    async def _sleep_before_retry(self, attempt: int) -> None:
+        """Sleep using exponential backoff before retrying."""
+        await asyncio.sleep(self.base_retry_delay * (2 ** attempt))
 
     async def extract_tool_calls(
         self,
