@@ -19,6 +19,8 @@ from goz.agent.sessions import Session, SessionManager
 from goz.agent.tools import (
     BashTool,
     CreateFileTool,
+    GlobTool,
+    GrepTool,
     ReadTool,
     RepoReadTool,
     RepoSearchTool,
@@ -153,6 +155,8 @@ def build_default_tool_registry(config: Config, working_dir: str) -> ToolRegistr
     registry.register(ViewFileTool(working_dir=working_dir))
     registry.register(CreateFileTool(working_dir=working_dir))
     registry.register(StrReplaceEditorTool(working_dir=working_dir))
+    registry.register(GlobTool(working_dir=working_dir))
+    registry.register(GrepTool(working_dir=working_dir))
     registry.register(SearchTool(config))
     registry.register(ReadTool(config))
     registry.register(RepoSearchTool(config))

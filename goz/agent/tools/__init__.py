@@ -35,6 +35,11 @@ from goz.agent.tools.api_tools import (
 
 from goz.agent.tools.bash_tool import BashTool, BashResult
 
+from goz.agent.tools.search_tools import (
+    GlobTool,
+    GrepTool,
+)
+
 __all__ = [
     # Base
     "Tool",
@@ -59,4 +64,7 @@ __all__ = [
     # Bash Tool
     "BashTool",
     "BashResult",
+    # Search Tools
+    "GlobTool",
+    "GrepTool",
 ]

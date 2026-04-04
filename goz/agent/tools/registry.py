@@ -101,7 +101,7 @@ class ToolRegistry:
             result.append({
                 "name": tool.name,
                 "description": tool.description,
-                "parameters": tool.input_schema,
+                "input_schema": tool.input_schema,
             })
         return result
 
