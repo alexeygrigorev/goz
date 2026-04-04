@@ -3,6 +3,8 @@
 These error types are used throughout the API client for consistent error handling.
 """
 
+from __future__ import annotations
+
 
 
 class ZaiError(Exception):
@@ -87,7 +89,17 @@ class ApiError(ZaiError):
             message=message,
             code="API_ERROR",
             statusCode=statusCode,
+            help=self._default_help(statusCode),
         )
+
+    @staticmethod
+    def _default_help(status_code: int) -> str:
+        """Return actionable guidance based on HTTP status code."""
+        if status_code == 429:
+            return "Rate limit hit. Wait a moment before retrying, or reduce request volume."
+        if status_code >= 500:
+            return "The service is having problems. Retry shortly; if it persists, try again later."
+        return "Check the request input and try again."
 
 
 class NetworkError(ZaiError):

@@ -118,6 +118,8 @@ Type your request below or press / for commands.""")
         # Add user message to display
         history = self.query_one(ChatHistoryViewer)
         history.add_user_message(user_input)
+        if hasattr(self.app, "mark_dirty"):
+            self.app.mark_dirty()
 
         # Yield to allow UI to update before API call
         import asyncio
@@ -125,6 +127,10 @@ Type your request below or press / for commands.""")
 
         # Process with agent and stream response
         await self.process_agent_turn(user_input)
+
+    async def on_chat_input_submitted(self, event) -> None:
+        """Backward-compatible alias for older tests/widgets."""
+        await self.on_input_submitted(event)
 
     async def process_agent_turn(self, user_input: str) -> None:
         """Process turn with agent and display streaming response.
@@ -185,7 +191,7 @@ Type your request below or press / for commands.""")
 
         if cmd in ("/quit", "/q"):
             # Exit the application
-            self.app.exit()
+            self.app.action_quit()
         elif cmd in ("/help", "/?"):
             # Show help screen
             self.app.push_screen(HelpScreen())
@@ -195,6 +201,8 @@ Type your request below or press / for commands.""")
             agent = getattr(self.app, "agent", None)
             if agent:
                 agent.history.clear()
+            if hasattr(self.app, "mark_dirty"):
+                self.app.mark_dirty()
             history.clear()
         elif cmd == "/save":
             # Save session

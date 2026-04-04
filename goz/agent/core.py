@@ -21,7 +21,9 @@ from typing import Any, AsyncIterator
 
 from goz.agent.chat_client import ChatClient, Chunk
 from goz.agent.history import ChatHistory, ChatMessage, ToolCall
+from goz.agent.tools.base import ToolError, ToolInputError
 from goz.agent.tools import ToolRegistry
+from goz.api.errors import ApiError, AuthError, NetworkError, TimeoutError, ZaiError
 from goz.config import Config
 
 
@@ -180,10 +182,10 @@ class AgentCore:
                 # Step 2f: Loop continues with tool results in history
 
             except Exception as e:
-                # Handle API errors
                 logger.error(f"Error during turn processing: {e}")
-                # Add error message and yield completion
-                self.history.add(ChatMessage(role="assistant", content=f"Error: {e}"))
+                error_message = self._format_agent_error(e)
+                self.history.add(ChatMessage(role="assistant", content=error_message))
+                yield error_message
                 yield COMPLETION_MARKER
                 break
 
@@ -284,7 +286,8 @@ class AgentCore:
         tool = self.tool_registry.get(tool_name)
 
         if tool is None:
-            return f"Tool not found: {tool_name}"
+            available = ", ".join(sorted(self.tool_registry.tool_names)) or "none"
+            return f"Tool '{tool_name}' not found. Available tools: {available}."
 
         try:
             # Execute with timeout (AC 7)
@@ -295,14 +298,42 @@ class AgentCore:
             return str(result)
 
         except asyncio.TimeoutError:
-            # Handle timeout (AC 7)
-            return f"Tool {tool_name} timed out after 300 seconds"
-
+            return (
+                f"Tool '{tool_name}' timed out after 300 seconds. "
+                "Try a smaller input or break the task into smaller steps."
+            )
         except Exception as e:
-            # Catch and format errors (AC 6)
             logger.error(f"Tool {tool_name} failed: {e}")
-            return f"Tool {tool_name} failed: {e}"
+            return self._format_tool_error(tool_name, e)
 
     def __repr__(self) -> str:
         """Return string representation of AgentCore."""
         return f"AgentCore(config={self.config!r}, messages={self.history.message_count})"
+
+    def _format_tool_error(self, tool_name: str, error: Exception) -> str:
+        """Return a user-facing tool error message."""
+        if isinstance(error, ToolInputError):
+            return f"Tool '{tool_name}' received invalid input: {error}. Check the required fields and try again."
+        if isinstance(error, PermissionError):
+            return f"Tool '{tool_name}' failed due to permission denied: {error}. Check file permissions and retry."
+        if isinstance(error, FileNotFoundError):
+            return f"Tool '{tool_name}' could not find the requested file: {error}. Verify the path and retry."
+        if isinstance(error, ToolError):
+            return f"Tool '{tool_name}' failed: {error}"
+        return f"Tool '{tool_name}' failed: {error}"
+
+    def _format_agent_error(self, error: Exception) -> str:
+        """Return a user-facing assistant error message."""
+        if isinstance(error, AuthError):
+            return f"Authentication error: {error.message} {error.help or ''}".strip()
+        if isinstance(error, TimeoutError):
+            return f"Request timed out. {error.help or 'Try again.'}".strip()
+        if isinstance(error, NetworkError):
+            return f"Network error: {error.message} {error.help or ''}".strip()
+        if isinstance(error, ApiError):
+            help_text = f" {error.help}" if error.help else ""
+            return f"API error ({error.statusCode}): {error.message}.{help_text}".strip()
+        if isinstance(error, ZaiError):
+            help_text = f" {error.help}" if error.help else ""
+            return f"{error.message}.{help_text}".strip()
+        return f"Unexpected error: {error}"

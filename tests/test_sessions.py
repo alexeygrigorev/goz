@@ -3,6 +3,7 @@
 Tests follow TDD: written first to verify behavior, then implementation.
 """
 import json
+import errno
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -225,6 +226,61 @@ class TestSessionDataclass:
         assert len(round_trip.messages) == len(original.messages)
         assert round_trip.messages[0].content == original.messages[0].content
         assert len(round_trip.messages[1].tool_calls) == 1
+
+
+class TestSessionManagerErrorHandling:
+    """Focused tests for session error handling."""
+
+    @pytest.mark.asyncio
+    async def test_load_corrupted_session_mentions_path_and_recovery_hint(self, tmp_path: Path) -> None:
+        """Corrupted session errors should be actionable."""
+        manager = SessionManager(session_dir=tmp_path)
+        broken = tmp_path / "broken.json"
+        broken.write_text("{not-json")
+
+        with pytest.raises(ValueError) as exc_info:
+            await manager.load("broken")
+
+        message = str(exc_info.value)
+        assert "corrupted" in message.lower()
+        assert str(broken) in message
+        assert "delete" in message.lower()
+
+    @pytest.mark.asyncio
+    async def test_save_disk_full_error_is_wrapped_with_path(self, tmp_path: Path) -> None:
+        """Disk full should be surfaced with actionable save guidance."""
+        manager = SessionManager(session_dir=tmp_path)
+        session = Session(
+            id="disk-full",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+            working_directory="/tmp",
+            messages=[],
+            model="claude",
+            agent_type="general",
+            config_snapshot={},
+        )
+
+        with patch("pathlib.Path.write_text", side_effect=OSError(errno.ENOSPC, "No space left on device")):
+            with pytest.raises(OSError) as exc_info:
+                await manager.save(session)
+
+        message = str(exc_info.value)
+        assert "disk is full" in message.lower()
+        assert "disk-full.json" in message
+
+    @pytest.mark.asyncio
+    async def test_load_permission_error_mentions_path(self, tmp_path: Path) -> None:
+        """Permission errors should keep the affected file path visible."""
+        manager = SessionManager(session_dir=tmp_path)
+        session_file = tmp_path / "locked.json"
+        session_file.write_text("{}")
+
+        with patch("pathlib.Path.read_text", side_effect=PermissionError("denied")):
+            with pytest.raises(PermissionError) as exc_info:
+                await manager.load("locked")
+
+        assert str(session_file) in str(exc_info.value)
 
 
 class TestSessionInfo:

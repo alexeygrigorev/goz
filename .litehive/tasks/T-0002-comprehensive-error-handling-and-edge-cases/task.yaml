@@ -1,0 +1,40 @@
+id: T-0002
+slug: comprehensive-error-handling-and-edge-cases
+title: Comprehensive error handling and edge cases
+depends_on: []
+task_type: bugfix
+engine: null
+model: null
+mode: implementation
+status: queued
+pipeline_status: backlog
+priority: medium
+pm_complexity: complex
+planned_effort: l
+created_at: '2026-04-04T18:29:37+00:00'
+updated_at: '2026-04-04T18:29:37+00:00'
+goal: Implement error handling for network errors, API errors, tool errors, session
+  errors, UI errors, and edge cases with retry logic and graceful degradation
+acceptance_criteria:
+- 'Network errors: connection failures, timeouts with retry'
+- 'API errors: 401 auth, 429 rate limit, 500 server errors'
+- 'Tool errors: input validation, file not found, permission denied'
+- Automatic retry with exponential backoff (max 3 retries)
+- User-friendly error messages with actionable suggestions
+- Context preservation after errors
+- Graceful shutdown with unsaved changes prompt
+constraints: []
+plan: []
+human_checkpoints: []
+subagents: []
+git:
+  auto_commit: true
+  commit_message: 'litehive: complete T-0002 comprehensive-error-handling-and-edge-cases'
+  commit_sha: null
+  checkpoint_base_sha: null
+  checkpoint_attempts: 0
+  rolled_back_checkpoint_attempt: null
+  worktree_path: null
+retry_policy:
+  max_retries: null
+created_from: null

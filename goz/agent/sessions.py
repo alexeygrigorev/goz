@@ -14,6 +14,7 @@ Acceptance Criteria:
 - AC 6: exists() checks if session exists
 - AC 7: get_info() returns session metadata
 """
+import errno
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -146,8 +147,15 @@ class SessionManager:
 
         file_path = self.session_dir / f"{session.id}.json"
 
-        with open(file_path, "w") as f:
-            json.dump(session.to_dict(), f, indent=2)
+        try:
+            self.session_dir.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(json.dumps(session.to_dict(), indent=2), encoding="utf-8")
+        except PermissionError as e:
+            raise PermissionError(f"Permission denied while saving session: {file_path}") from e
+        except OSError as e:
+            if e.errno == errno.ENOSPC:
+                raise OSError(f"Disk is full. Could not save session: {file_path}") from e
+            raise OSError(f"Failed to save session '{session.id}' to {file_path}: {e.strerror or e}") from e
 
         return file_path
 
@@ -170,11 +178,16 @@ class SessionManager:
             raise FileNotFoundError(f"Session not found: {session_id}")
 
         try:
-            with open(file_path) as f:
-                data = json.load(f)
+            data = json.loads(file_path.read_text(encoding="utf-8"))
             return Session.from_dict(data)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Corrupted session file: {e}") from e
+            raise ValueError(
+                f"Corrupted session file: {file_path}. Delete the file and start a fresh session. {e}"
+            ) from e
+        except PermissionError as e:
+            raise PermissionError(f"Permission denied while reading session: {file_path}") from e
+        except OSError as e:
+            raise OSError(f"Failed to load session from {file_path}: {e.strerror or e}") from e
 
     def list_sessions(self) -> list[SessionInfo]:
         """List all saved sessions.

@@ -101,6 +101,49 @@ class TestAgentApp:
 
         assert AgentApp.SCREENS["chat"] is ChatScreen
 
+    def test_agent_app_starts_clean(self):
+        """Unsaved-change tracking starts clean."""
+        from goz.agent.tui.app import AgentApp
+
+        with patch("goz.agent.tui.app.load_config"), \
+             patch("goz.agent.tui.app.AgentCore"):
+            app = AgentApp()
+            assert app.has_unsaved_changes is False
+
+    def test_quit_with_unsaved_changes_prompts_for_confirmation(self):
+        """Dirty sessions should prompt before quitting."""
+        from goz.agent.tui.app import AgentApp
+        from goz.agent.tui.screens.session import ConfirmScreen
+
+        with patch("goz.agent.tui.app.load_config"), \
+             patch("goz.agent.tui.app.AgentCore"):
+            app = AgentApp()
+            app.has_unsaved_changes = True
+            app.agent = Mock()
+            app.agent.history.messages = [Mock()]
+            app.push_screen = Mock()
+            app.exit = Mock()
+
+            app.action_quit()
+
+            pushed = app.push_screen.call_args.args[0]
+            assert isinstance(pushed, ConfirmScreen)
+            assert "unsaved" in pushed.message.lower()
+            app.exit.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_save_session_clears_unsaved_changes(self, tmp_path):
+        """Saving should mark the session as clean."""
+        from goz.agent.tui.app import AgentApp
+
+        app = AgentApp()
+        app.has_unsaved_changes = True
+
+        with patch.object(app, "_get_session_dir", return_value=tmp_path):
+            await app.save_session("clean-state")
+
+        assert app.has_unsaved_changes is False
+
 
 class TestChatScreen:
     """Unit Tests: ChatScreen class."""
