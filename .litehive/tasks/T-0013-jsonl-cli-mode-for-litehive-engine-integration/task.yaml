@@ -1,0 +1,48 @@
+id: T-0013
+slug: jsonl-cli-mode-for-litehive-engine-integration
+title: JSONL CLI mode for litehive engine integration
+depends_on: []
+task_type: adapter
+engine: null
+model: null
+mode: implementation
+status: queued
+pipeline_status: grooming
+priority: medium
+pm_complexity: moderate
+planned_effort: m
+created_at: '2026-04-04T16:05:00+00:00'
+updated_at: '2026-04-04T16:05:00+00:00'
+goal: Add a goz run CLI command that accepts a prompt, executes it, and outputs JSONL events compatible with litehive ExternalCLIAdapter protocol.
+acceptance_criteria:
+- "goz run --format json 'prompt' outputs JSONL events to stdout"
+- "Emits {type: text, part: {text: ...}} for assistant messages"
+- "Emits {type: step_finish, part: {tokens: {...}, cost: ...}} at end"
+- "Emits {type: error, error: {name: ..., data: {message: ...}}} on errors"
+- "Supports --dir flag for working directory"
+- "Supports --model flag for model override"
+- "Agent emits STAGE_RESULT JSON block with verdict in output"
+- "Exit code 0 on success, non-zero on failure"
+constraints:
+- Keep changes scoped to the task.
+- Prefer focused pytest coverage for the changed CLI and agent modules.
+- Keep litehive compatibility at the JSONL adapter boundary.
+plan:
+- Inspect the existing CLI dispatch, agent streaming path, and tool wiring.
+- Add a goz run command and adapt agent output to ExternalCLIAdapter JSONL events.
+- Wire working-directory and model overrides for one-shot CLI execution.
+- Register a default tool set for CLI mode so tool_use events are possible.
+- Verify with focused pytest coverage around the new command and adapter behavior.
+human_checkpoints: []
+subagents: []
+git:
+  auto_commit: true
+  commit_message: 'litehive: complete T-0013 jsonl-cli-mode-for-litehive-engine-integration'
+  commit_sha: null
+  checkpoint_base_sha: null
+  checkpoint_attempts: 0
+  rolled_back_checkpoint_attempt: null
+  worktree_path: null
+retry_policy:
+  max_retries: null
+created_from: null

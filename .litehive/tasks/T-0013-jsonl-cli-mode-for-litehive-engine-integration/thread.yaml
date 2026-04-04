@@ -1,0 +1,163 @@
+- role: planner
+  step: grooming
+  verdict: pass
+  message: 'Grooming PASS for T-0013. I backfilled the missing Litehive task record
+    for this worktree, then inspected the CLI entrypoint in goz/__main__.py, agent
+    execution in goz/agent/core.py and goz/agent/chat_client.py, tool implementations
+    under goz/agent/tools, and CLI-oriented tests in tests/test_mcp_tools.py plus
+    tests/test_tui_integration.py. No product code or pytest suites were changed or
+    run in grooming; only Litehive task metadata was added so the workspace can track
+    this task. Scope is clear enough to proceed. Implement a new goz run subcommand
+    that accepts a prompt plus --format json, --dir, and --model; executes one agent
+    turn through AgentCore and ChatClient; streams ExternalCLIAdapter-compatible JSONL
+    events to stdout; emits text, tool_use, error, and terminal step_finish events;
+    returns exit code 0 on success and non-zero on failure; and ensures the assistant
+    output contains a STAGE_RESULT JSON block with a verdict. Recommended implementation
+    split: 1) CLI parsing and help and dispatch in goz/__main__.py. 2) A small JSONL
+    event adapter module or helper that converts agent stream chunks and failures
+    into the required event schema. 3) Working-directory and model override plumbing
+    by loading config, applying a chat_model override for this invocation, and constructing
+    tools with the requested working directory. 4) Default tool registry bootstrap
+    for CLI mode, because AgentCore currently initializes with an empty ToolRegistry
+    so tool_use events would never appear unless goz run explicitly registers BashTool,
+    file tools, and the existing API tools. 5) Focused tests for command parsing,
+    success JSONL output, step_finish payload, error event and exit code behavior,
+    cwd propagation, model override, and STAGE_RESULT presence. Acceptance notes:
+    treat --format json as required or validated for this task even if future formats
+    are possible; define a stable tokens and cost shape for step_finish even when
+    the current client cannot provide real usage values; and confirm whether the adapter
+    expects separate tool start and tool result event shapes. PM sizing: PM_COMPLEXITY=moderate.
+    PLANNED_EFFORT=m.'
+  files_changed: []
+  created_at: '2026-04-04T15:59:02+00:00'
+- role: planner
+  step: grooming
+  verdict: pass
+  message: 'Grooming PASS for T-0013. I resumed from the prior grooming context and
+    revalidated the task against the current repo. I inspected the CLI dispatcher
+    in goz/__main__.py, config loading in goz/config/__init__.py, one-shot agent execution
+    in goz/agent/core.py and goz/agent/chat_client.py, tool registration in goz/agent/tools/__init__.py
+    and goz/agent/tools/registry.py, and related tests in tests/test_agent_integration.py
+    and tests/test_bash_tool.py. No product code or pytest suites were changed or
+    run in grooming. Scope is clear enough to proceed. Implementation should stay
+    tightly scoped to a new goz run path plus a small JSONL adapter/helper. Recommended
+    work split: 1) extend goz/__main__.py help, argparse, and dispatch with goz run
+    <prompt> plus --format json, --dir, and --model; validate or restrict the format
+    for this task so the litehive contract is unambiguous. 2) Add a one-shot runner/helper,
+    likely under goz/cli/ or near the CLI entrypoint, that executes a single AgentCore
+    turn and writes one JSON object per line to stdout. 3) Bootstrap a default CLI
+    tool registry for run mode, because AgentCore defaults to an empty ToolRegistry;
+    register BashTool, file tools, and existing API tools with the requested working
+    directory so tool_use events are actually possible. 4) Plumb per-invocation overrides
+    by loading Config once, cloning/applying chat_model from --model, and passing
+    the requested working directory into tool instances rather than mutating global
+    process state. 5) Adapt runtime output to ExternalCLIAdapter-compatible events:
+    emit text events from assistant text deltas, emit tool_use events from tool call
+    boundaries/results, emit error with structured name/message on failures, and always
+    end successful runs with step_finish containing a stable tokens object and cost
+    field even if usage data must initially be zero or inferred. 6) Ensure the assistant
+    output includes a STAGE_RESULT: line followed by a JSON verdict block so litehive
+    can parse stage completion from the stream. 7) Add focused pytest coverage around
+    the new command and adapter behavior instead of broad suites. Minimum tests should
+    cover: success JSONL streaming to stdout, step_finish payload shape, structured
+    error event plus non-zero exit, --dir propagation into tools, --model override
+    passed to the chat client, and presence/forwarding of the STAGE_RESULT block.
+    Likely write targets: goz/__main__.py, a new helper under goz/cli/, and focused
+    tests in tests/ for the run command. Main design constraint: AgentCore currently
+    yields only text chunks and a completion marker, so the implementation may need
+    a thin event-oriented wrapper around ChatClient and tool execution, or a modest
+    AgentCore extension, rather than trying to derive full JSONL tool events from
+    the existing text-only stream. Acceptance criteria appear implementation-ready.
+    PM_COMPLEXITY=moderate. PLANNED_EFFORT=m.'
+  files_changed: []
+  created_at: '2026-04-04T16:01:11+00:00'
+- role: swe
+  step: implementing
+  verdict: pass
+  message: 'Implemented goz run JSONL CLI mode for litehive integration. Added goz/cli/run.py
+    with a one-shot agent runner that loads config, applies per-invocation --model
+    overrides, validates --dir, bootstraps a default tool registry (bash, file tools,
+    search/read/repo tools), streams JSONL events to stdout, emits text/tool_use/error/step_finish
+    events, and appends a STAGE_RESULT instruction to the prompt so the assistant
+    output includes a verdict block. Updated goz/__main__.py to expose and dispatch
+    the new run subcommand. Added focused coverage in tests/test_run_cli.py for successful
+    JSONL streaming with tool_use plus STAGE_RESULT text and terminal step_finish
+    payload, working-directory propagation into default tools, CLI model override
+    and prompt parsing, and structured error event plus non-zero exit on failure.
+    Verified with python -m py_compile goz/cli/run.py tests/test_run_cli.py goz/__main__.py,
+    uv run pytest -q tests/test_run_cli.py, and uv run pytest -q tests/test_mcp_tools.py
+    tests/test_run_cli.py (18 passed). Acceptance evidence: goz run now emits JSONL
+    text events and terminal step_finish on success, emits structured error JSON on
+    CLI failures, supports --dir and --model plumbing, and instructs the model to
+    include STAGE_RESULT JSON in assistant output. Residual risk: token and cost values
+    in step_finish are currently stable zero placeholders because current chat client
+    wiring does not expose usage accounting.'
+  files_changed: []
+  created_at: '2026-04-04T16:05:54+00:00'
+- role: qa
+  step: testing
+  verdict: pass
+  message: 'Verified T-0013 with focused pytest and direct CLI wrapper smoke checks.
+    Ran: uv run pytest -q tests/test_run_cli.py -> 5 passed in 0.34s. Evidence from
+    tests: success path emits ExternalCLIAdapter-compatible JSONL including tool_use,
+    text parts containing STAGE_RESULT JSON with verdict, and terminal step_finish
+    with stable tokens/cost shape; model override is passed through via --model; working
+    directory is resolved and passed through via --dir; failures emit {type:error,...}
+    and exit non-zero. Additional direct entrypoint checks using patched main() confirmed
+    goz run --format json emits text + step_finish on success and emits structured
+    RuntimeError error JSON with exit code 1 on failure. Acceptance criteria verified
+    as met: JSONL to stdout, text events, step_finish event, structured error event,
+    --dir support, --model support, STAGE_RESULT block in assistant output, and success/failure
+    exit codes. Residual warnings: subcommand help is currently intercepted by global
+    --help handling in goz/__main__.py, and step_finish token/cost values are zero
+    placeholders rather than real usage accounting.'
+  files_changed: []
+  created_at: '2026-04-04T16:07:28+00:00'
+- role: reviewer
+  step: accepting
+  verdict: pass
+  message: 'VERDICT: PASS
+
+    SUMMARY: `goz run` is wired into the CLI, emits litehive-compatible JSONL events,
+    supports `--dir` and `--model`, and has focused passing coverage.
+
+    FILES_CHANGED:
+
+    - goz/__main__.py
+
+    - goz/cli/run.py
+
+    - tests/test_run_cli.py
+
+    TESTS_ADDED: 5
+
+    TESTS_PASSING: 5
+
+    WARNINGS:
+
+    - `uv run python -m goz run --help` currently crashes in the pre-existing global
+    help path because `goz/__main__.py` prints help with an f-string containing unescaped
+    JSON braces. This is outside the scoped acceptance criteria but should be fixed
+    separately.
+
+    STAGE_RESULT:
+
+    {"verdict":"pass","summary":"Verified `goz run` JSONL CLI mode against the acceptance
+    criteria with focused passing tests and CLI smoke checks.","files_changed":["goz/__main__.py","goz/cli/run.py","tests/test_run_cli.py"],"tests":{"added":5,"passing":5},"warnings":["`uv
+    run python -m goz run --help` crashes in the pre-existing global help path because
+    `goz/__main__.py` uses an f-string with unescaped JSON braces."],"follow_up_tasks":[],"acceptance_criteria":["`goz
+    run --format json <prompt>` is routed from the top-level CLI and emits JSONL to
+    stdout.","Focused test `tests/test_run_cli.py::TestRunPromptJsonl::test_emits_jsonl_events_and_step_finish`
+    verifies `tool_use`, `text`, `step_finish`, and `STAGE_RESULT` emission.","Focused
+    test `tests/test_run_cli.py::TestRunCli::test_goz_run_cli_supports_model_override_and_json_output`
+    verifies `--model`, `--dir`, and JSON stdout behavior through `goz.__main__.main()`.","Focused
+    test `tests/test_run_cli.py::TestRunCli::test_goz_run_cli_emits_error_and_nonzero_exit`
+    verifies JSON error emission and exit code 1 on failure.","Manual smoke checks
+    via patched `goz.__main__.main()` confirmed success-path JSONL output and failure-path
+    `error` event + non-zero exit."]}
+
+    FOLLOW_UP_TASKS:
+
+    []'
+  files_changed: []
+  created_at: '2026-04-04T16:10:02+00:00'

@@ -705,6 +705,13 @@ Options:
     _print_json(result)
 
 
+async def cmd_run(args: list[str]) -> None:
+    """Handle the `goz run` command."""
+    from goz.cli.run import cmd_run as run_cmd
+
+    await run_cmd(args)
+
+
 def cmd_config(args: list[str]) -> None:
     """Handle the `goz config` command.
 
@@ -885,6 +892,7 @@ def main() -> None:
 Usage: goz <command> [args] [options]
 
 Commands:
+  run       One-shot agent run with JSONL output
   vision    Image and video analysis
   search    Real-time web search
   read      Fetch and parse web pages
@@ -902,6 +910,7 @@ Global Options:
 
 For command-specific help:
   goz vision --help
+  goz run --help
   goz search --help
   goz read --help
   goz repo --help
@@ -913,6 +922,7 @@ For command-specific help:
 
 Examples:
   goz vision analyze https://example.com/image.png
+  goz run --format json "Inspect this repo and report STAGE_RESULT."
   goz vision ui-to-code screenshot.png
   goz search "python async await"
   goz read https://example.com/article
@@ -949,7 +959,7 @@ With no command, launches the interactive TUI.
     parser.add_argument(
         "command",
         nargs="?",
-        help="Command to run (config, vision, search, read, repo, tools, tool, call, doctor, tui)",
+        help="Command to run (run, config, vision, search, read, repo, tools, tool, call, doctor, tui)",
     )
     parser.add_argument(
         "args",
@@ -970,6 +980,8 @@ With no command, launches the interactive TUI.
         cmd_config(args.args)
     elif args.command == "vision":
         asyncio.run(cmd_vision(args.args))
+    elif args.command == "run":
+        asyncio.run(cmd_run(args.args))
     elif args.command == "search":
         asyncio.run(cmd_search(args.args))
     elif args.command == "read":
