@@ -778,6 +778,15 @@ With no command, launches the interactive TUI.
         action="version",
         version=f"%(prog)s {__version__}",
     )
+    # Agent mode flags (for use with no command)
+    parser.add_argument(
+        "--load",
+        help="Load session on startup (for agent mode)",
+    )
+    parser.add_argument(
+        "--agent",
+        help="Start with specific agent type (for agent mode)",
+    )
     parser.add_argument(
         "command",
         nargs="?",
@@ -792,9 +801,9 @@ With no command, launches the interactive TUI.
     args = parser.parse_args()
 
     if args.command is None:
-        # No command = launch TUI
-        from goz.tui import run_tui
-        run_tui()
+        # No command = launch AGENT MODE (interactive coding agent)
+        from goz.agent.tui import run_agent_app
+        run_agent_app(session_id=args.load, agent_type=args.agent)
         return
 
     # Dispatch to command handlers
