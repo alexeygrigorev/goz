@@ -15,7 +15,7 @@ Acceptance Criteria:
 - AC 7: get_info() returns session metadata
 """
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
@@ -45,6 +45,7 @@ class Session:
     model: str
     agent_type: str
     config_snapshot: dict
+    tool_state: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         """Convert Session to dict for JSON serialization.
@@ -61,6 +62,7 @@ class Session:
             "model": self.model,
             "agent_type": self.agent_type,
             "config_snapshot": self.config_snapshot,
+            "tool_state": self.tool_state,
         }
 
     @classmethod
@@ -82,6 +84,7 @@ class Session:
             model=data["model"],
             agent_type=data["agent_type"],
             config_snapshot=data.get("config_snapshot", {}),
+            tool_state=data.get("tool_state", {}),
         )
 
 

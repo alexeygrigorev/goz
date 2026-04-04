@@ -5,12 +5,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import signal
 import sys
+import uuid
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
 
 from goz.agent.chat_client import ChatClient, Chunk, ContentBlockDelta, ContentBlockStart, ContentBlockStop
 from goz.agent.history import ChatHistory, ChatMessage, ToolCall
+from goz.agent.sessions import Session, SessionManager
 from goz.agent.tools import (
     BashTool,
     CreateFileTool,
@@ -27,6 +32,7 @@ from goz.config import Config, load_config
 
 
 MAX_ITERATIONS = 10
+DEFAULT_AGENT_TYPE = "engine"
 STEP_FINISH_TOKENS = {
     "input": 0,
     "output": 0,
@@ -87,17 +93,57 @@ def emit_error_event(name: str, message: str, stdout: TextIO) -> None:
     )
 
 
-def emit_step_finish_event(stdout: TextIO) -> None:
+def emit_step_finish_event(stdout: TextIO, session_id: str) -> None:
     _emit_event(
         {
             "type": "step_finish",
             "part": {
                 "tokens": dict(STEP_FINISH_TOKENS),
                 "cost": 0,
+                "session_id": session_id,
+                "continuation": {"resume_session_id": session_id},
             },
         },
         stdout,
     )
+
+
+@dataclass
+class RunSessionState:
+    session_id: str
+    created_at: datetime
+    history: ChatHistory
+    working_dir: str
+    agent_type: str
+    config: Config
+    session_manager: SessionManager
+    tool_registry: ToolRegistry
+
+    async def save(self) -> Path:
+        session = Session(
+            id=self.session_id,
+            created_at=self.created_at,
+            updated_at=datetime.now(),
+            working_directory=self.working_dir,
+            messages=list(self.history.messages),
+            model=self.config.chat_model,
+            agent_type=self.agent_type,
+            config_snapshot=self.config.model_dump() if hasattr(self.config, "model_dump") else {},
+            tool_state=_serialize_tool_state(self.tool_registry, self.working_dir),
+        )
+        return await self.session_manager.save(session)
+
+
+def _serialize_tool_state(tool_registry: ToolRegistry, working_dir: str) -> dict[str, Any]:
+    return {
+        "working_directory": working_dir,
+        "tools": {
+            tool.name: {
+                "working_dir": getattr(tool, "working_dir", None),
+            }
+            for tool in tool_registry.list_all()
+        },
+    }
 
 
 def build_default_tool_registry(config: Config, working_dir: str) -> ToolRegistry:
@@ -177,62 +223,113 @@ async def run_prompt_jsonl(
     stdout: TextIO | None = None,
     tool_registry: ToolRegistry | None = None,
     chat_client: ChatClient | None = None,
+    resume_session_id: str | None = None,
+    session_dir: Path | None = None,
 ) -> int:
     """Execute one agent prompt and emit JSONL events."""
     stdout = stdout or sys.stdout
-    history = ChatHistory()
+    session_manager = SessionManager(session_dir=session_dir)
+    session: Session | None = None
+    if resume_session_id is not None:
+        session = await session_manager.load(resume_session_id)
+        working_dir = session.working_directory
+
+    history = ChatHistory(messages=list(session.messages) if session else None)
     registry = tool_registry or build_default_tool_registry(config, working_dir)
     client = chat_client or ChatClient(config=config)
+    state = RunSessionState(
+        session_id=resume_session_id or uuid.uuid4().hex,
+        created_at=session.created_at if session else datetime.now(),
+        history=history,
+        working_dir=working_dir,
+        agent_type=session.agent_type if session else DEFAULT_AGENT_TYPE,
+        config=config,
+        session_manager=session_manager,
+        tool_registry=registry,
+    )
 
-    history.add(ChatMessage(role="user", content=_build_prompt(prompt)))
+    if prompt:
+        history.add(ChatMessage(role="user", content=_build_prompt(prompt)))
 
-    for _ in range(MAX_ITERATIONS):
-        chunks: list[Chunk] = []
-        assistant_chunks: list[str] = []
+    loop = asyncio.get_running_loop()
+    interrupted_by: dict[str, str | None] = {"signal": None}
+    current_task = asyncio.current_task()
 
-        stream = client.chat_completion(
-            messages=history.to_api_format(),
-            tools=registry.to_openai_schema(),
-            tool_choice="auto",
-        )
+    async def _handle_interrupt(signame: str) -> None:
+        interrupted_by["signal"] = signame
+        await state.save()
+        if current_task is not None:
+            current_task.cancel()
 
-        async for chunk in stream:
-            chunks.append(chunk)
-            if isinstance(chunk, ContentBlockDelta) and chunk.type == "text_delta" and chunk.text:
-                assistant_chunks.append(chunk.text)
-                emit_text_event(chunk.text, stdout)
-
-        tool_calls = _parse_tool_calls(chunks)
-        if not tool_calls:
-            history.add(ChatMessage(role="assistant", content="".join(assistant_chunks)))
-            emit_step_finish_event(stdout)
-            return 0
-
-        history.add(
-            ChatMessage(
-                role="assistant",
-                content="".join(assistant_chunks),
-                tool_calls=[
-                    ToolCall(
-                        id=tool_call["id"],
-                        name=tool_call["name"],
-                        input=tool_call["input"],
-                    )
-                    for tool_call in tool_calls
-                ],
+    for signum in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(
+                signum,
+                lambda current_signum=signum: asyncio.create_task(
+                    _handle_interrupt(signal.Signals(current_signum).name)
+                ),
             )
-        )
+        except (NotImplementedError, RuntimeError):
+            continue
 
-        for tool_call in tool_calls:
-            result, is_error = await _execute_tool_call(registry, tool_call)
-            emit_tool_use_event(tool_call, result, stdout, is_error=is_error)
+    try:
+        for _ in range(MAX_ITERATIONS):
+            chunks: list[Chunk] = []
+            assistant_chunks: list[str] = []
+
+            stream = client.chat_completion(
+                messages=history.to_api_format(),
+                tools=registry.to_openai_schema(),
+                tool_choice="auto",
+            )
+
+            async for chunk in stream:
+                chunks.append(chunk)
+                if isinstance(chunk, ContentBlockDelta) and chunk.type == "text_delta" and chunk.text:
+                    assistant_chunks.append(chunk.text)
+                    emit_text_event(chunk.text, stdout)
+
+            tool_calls = _parse_tool_calls(chunks)
+            if not tool_calls:
+                history.add(ChatMessage(role="assistant", content="".join(assistant_chunks)))
+                emit_step_finish_event(stdout, state.session_id)
+                return 0
+
             history.add(
                 ChatMessage(
-                    role="tool",
-                    content=result,
-                    tool_result_id=tool_call["id"],
+                    role="assistant",
+                    content="".join(assistant_chunks),
+                    tool_calls=[
+                        ToolCall(
+                            id=tool_call["id"],
+                            name=tool_call["name"],
+                            input=tool_call["input"],
+                        )
+                        for tool_call in tool_calls
+                    ],
                 )
             )
+
+            for tool_call in tool_calls:
+                result, is_error = await _execute_tool_call(registry, tool_call)
+                emit_tool_use_event(tool_call, result, stdout, is_error=is_error)
+                history.add(
+                    ChatMessage(
+                        role="tool",
+                        content=result,
+                        tool_result_id=tool_call["id"],
+                    )
+                )
+    except asyncio.CancelledError:
+        emit_error_event("Interrupted", f"Run interrupted by {interrupted_by['signal'] or 'signal'}", stdout)
+        return 1
+    finally:
+        for signum in (signal.SIGTERM, signal.SIGINT):
+            try:
+                loop.remove_signal_handler(signum)
+            except (NotImplementedError, RuntimeError):
+                continue
+        await state.save()
 
     emit_error_event("MaxIterationsExceeded", f"Exceeded {MAX_ITERATIONS} agent iterations", stdout)
     return 1
@@ -249,10 +346,12 @@ Options:
   --format, -f json   Output ExternalCLIAdapter-compatible JSONL (default: json)
   --dir DIR           Working directory for file and shell tools
   --model MODEL       Override chat model for this invocation
+  --resume-session ID Resume a previously saved engine session
 
 Examples:
   goz run --format json "Summarize this repo and report STAGE_RESULT."
   goz run --dir /tmp/project --model glm-5 "Run pytest and explain failures."
+  goz run --resume-session abc123 "Continue with the next step."
 """)
         return
 
@@ -260,8 +359,12 @@ Examples:
     parser.add_argument("--format", "-f", choices=["json"], default="json", help="Output format")
     parser.add_argument("--dir", dest="working_dir", help="Working directory for the run")
     parser.add_argument("--model", help="Override chat model")
-    parser.add_argument("prompt", nargs="+", help="Prompt to execute")
+    parser.add_argument("--resume-session", dest="resume_session_id", help="Resume a saved session by ID")
+    parser.add_argument("prompt", nargs="*", help="Prompt to execute")
     parsed = parser.parse_args(args)
+
+    if not parsed.prompt and not parsed.resume_session_id:
+        raise SystemExit("goz run requires a prompt unless --resume-session is provided")
 
     try:
         config = load_config()
@@ -269,15 +372,16 @@ Examples:
             config = config.model_copy(update={"chat_model": parsed.model})
 
         working_dir = str(Path(parsed.working_dir or ".").resolve())
-        if not Path(working_dir).exists():
+        if parsed.working_dir and not Path(working_dir).exists():
             raise FileNotFoundError(f"Working directory does not exist: {working_dir}")
-        if not Path(working_dir).is_dir():
+        if parsed.working_dir and not Path(working_dir).is_dir():
             raise NotADirectoryError(f"Working directory is not a directory: {working_dir}")
 
         exit_code = await run_prompt_jsonl(
             " ".join(parsed.prompt),
             config=config,
             working_dir=working_dir,
+            resume_session_id=parsed.resume_session_id,
         )
     except Exception as exc:
         emit_error_event(type(exc).__name__, str(exc), sys.stdout)
