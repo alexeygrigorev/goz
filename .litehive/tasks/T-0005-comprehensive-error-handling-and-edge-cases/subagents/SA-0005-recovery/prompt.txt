@@ -1,0 +1,21 @@
+The commit_to_git stage failed for task T-0005 (Comprehensive error handling and edge cases).
+
+Error: merge failed but no conflict files found: error: Your local changes to the following files would be overwritten by merge:
+	.litehive/state.yaml
+Please commit your changes or stash them before you merge.
+Aborting
+
+Working directory: /home/alexey/git/goz/.litehive/worktrees/T-0005-comprehensive-error-handling-and-edge-cases
+Main repo: /home/alexey/git/goz
+
+Your job is to diagnose and fix whatever is preventing the task's changes from being committed and merged into main. Common issues:
+- Merge conflicts: resolve them and run `git add <file> && git commit --no-edit`
+- Dirty state: stage and commit changes with `git add -A && git commit -m 'fix'`
+- Worktree issues: check `git status` in both /home/alexey/git/goz/.litehive/worktrees/T-0005-comprehensive-error-handling-and-edge-cases and /home/alexey/git/goz
+
+After fixing, ensure the worktree changes are merged into main:
+1. In the worktree: `git add -A && git commit -m 'litehive: complete T-0005 comprehensive-error-handling-and-edge-cases (attempt 2)'`
+2. In main repo: `cd /home/alexey/git/goz && git merge <worktree-HEAD>`
+
+If you cannot fix it, explain why in your report.
+Submit your result: litehive report --verdict pass --role recovery --step commit_to_git --message '<what you fixed>'

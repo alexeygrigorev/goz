@@ -1,0 +1,607 @@
+events:
+- kind: message
+  engine: codex
+  sequence: 0
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: assistant
+  content: "I\u2019m validating the workspace against the stated acceptance criteria\
+    \ and will inspect the Litehive task artifacts plus run the relevant `litehive`\
+    \ commands from this worktree."
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: tool_result
+  engine: codex
+  sequence: 1
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "/home/alexey/git/goz/.litehive/worktrees/T-0006-register-and-activate-t-0002-in-litehive\n\
+    \ M .litehive/state.yaml\n M .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    \ M .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\n\
+    .litehive/config.yaml\n.litehive/context.md\n.litehive/state.yaml\n.litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/task.yaml\n\
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/thread.yaml\n\
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/brief.md\n\
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/journal.md\n\
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\n\
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/journal.md\n\
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/task.yaml\n\
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/thread.yaml\n\
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/brief.md\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 2
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: 'workspace: /home/alexey/git/goz/.litehive/worktrees/T-0006-register-and-activate-t-0002-in-litehive
+
+    default_engine: codex
+
+    mode: implementation
+
+    active_task_id: T-0002
+
+    queued_tasks: 6
+
+    pool_stop_reason: None
+
+    queue_head: T-0002
+
+    active_task_title: Comprehensive error handling and edge cases
+
+    active_task_status: in_progress/grooming
+
+    active_stage: grooming
+
+    active_engine: codex
+
+    '
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 3
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "usage: litehive report [-h] --verdict {pass,fail,reject,blocked,comment}\n\
+    \                       --message MESSAGE [--role ROLE] [--step STEP]\n      \
+    \                 [--files-changed FILES_CHANGED] [--task-id TASK_ID]\n      \
+    \                 [--workspace WORKSPACE]\n\noptions:\n  -h, --help          \
+    \  show this help message and exit\n  --verdict {pass,fail,reject,blocked,comment}\n\
+    \  --message MESSAGE     Detailed explanation of what was done, what failed, or\n\
+    \                        what needs fixing\n  --role ROLE           Role submitting\
+    \ the report (swe, qa, reviewer,\n                        planner)\n  --step STEP\
+    \           Stage (grooming, implementing, testing, accepting).\n            \
+    \            Defaults to the task's current pipeline_status.\n  --files-changed\
+    \ FILES_CHANGED\n                        Files that were changed (repeat for multiple)\n\
+    \  --task-id TASK_ID     Task ID. Defaults to the active task.\n  --workspace\
+    \ WORKSPACE\n                        Repository root containing .litehive/\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: message
+  engine: codex
+  sequence: 4
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: assistant
+  content: "`litehive status` already shows the workspace routed to `T-0002`. I\u2019\
+    m checking the task record content and the current worktree diff next so the verdict\
+    \ is based on the actual artifact state, not just the CLI summary."
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: tool_result
+  engine: codex
+  sequence: 5
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "id: T-0002\nslug: comprehensive-error-handling-and-edge-cases\ntitle:\
+    \ Comprehensive error handling and edge cases\ndepends_on: []\ntask_type: bugfix\n\
+    engine: null\nmodel: null\nmode: implementation\nstatus: in_progress\npipeline_status:\
+    \ grooming\npriority: medium\npm_complexity: complex\nplanned_effort: l\ncreated_at:\
+    \ '2026-04-04T18:29:37+00:00'\nupdated_at: '2026-04-04T18:45:00+00:00'\ngoal:\
+    \ Implement error handling for network errors, API errors, tool errors, session\n\
+    \  errors, UI errors, and edge cases with retry logic and graceful degradation\n\
+    acceptance_criteria:\n- 'Network errors: connection failures, timeouts with retry'\n\
+    - 'API errors: 401 auth, 429 rate limit, 500 server errors'\n- 'Tool errors: input\
+    \ validation, file not found, permission denied'\n- Automatic retry with exponential\
+    \ backoff (max 3 retries)\n- User-friendly error messages with actionable suggestions\n\
+    - Context preservation after errors\n- Graceful shutdown with unsaved changes\
+    \ prompt\nconstraints:\n- Keep changes scoped to the task.\n- Avoid multiplying\
+    \ retry layers across the API client and agent orchestration path.\nplan:\n- Confirm\
+    \ the retry contract and whether \"max 3 retries\" means 3 retries after the\n\
+    \  initial attempt or 3 total attempts.\n- Update the chat retry path to match\
+    \ the accepted retry contract without regressing\n  existing API and TUI behavior.\n\
+    - Add or adjust focused tests for retry exhaustion, backoff count, and actionable\n\
+    \  error messaging.\n- Re-run the targeted pytest suites for chat, agent core,\
+    \ sessions, and TUI flows\n  before re-review.\nhuman_checkpoints: []\nsubagents:\
+    \ []\ngit:\n  auto_commit: true\n  commit_message: 'litehive: complete T-0002\
+    \ comprehensive-error-handling-and-edge-cases'\n  commit_sha: null\n  checkpoint_base_sha:\
+    \ null\n  checkpoint_attempts: 0\n  rolled_back_checkpoint_attempt: null\n  worktree_path:\
+    \ null\nretry_policy:\n  max_retries: null\ncreated_from: null\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 6
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "- role: planner\n  step: grooming\n  verdict: pass\n  message: 'Grooming\
+    \ PASS for requested task \"T-0005 Comprehensive error handling\n    and edge\
+    \ cases\". The Litehive workspace did not contain a T-0005 task record,\n    so\
+    \ I created the missing local task record as T-0002 with the provided goal and\n\
+    \    acceptance criteria before reporting. Repo inspection shows partial lower-layer\n\
+    \    coverage already exists: API retries/backoff are implemented in goz/api/client.py\n\
+    \    with 3 total attempts and exponential backoff; session persistence already\
+    \ preserves\n    history and can load/list/delete; chat history already compresses\
+    \ older context\n    to preserve continuity. The main missing work is orchestration\
+    \ and UX in the agent\n    path: AgentCore currently collapses all API/tool failures\
+    \ into generic assistant\n    text without typed recovery or user-facing retry\
+    \ state; ChatScreen uses a plain\n    textual Input rather than the custom ChatInput\
+    \ expected by tests and has no structured\n    error notification/retry path;\
+    \ AgentApp quits immediately and does not prompt\n    on unsaved changes; SessionManager\
+    \ only handles missing/corrupt files and not\n    permission/disk-full cases with\
+    \ product-level messaging.\n\n\n    What I verified:\n\n    - Read tracker/spec\
+    \ and relevant implementation paths: goz/api/client.py, goz/api/errors.py,\n \
+    \   goz/agent/core.py, goz/agent/history.py, goz/agent/sessions.py, goz/agent/tui/app.py,\n\
+    \    goz/agent/tui/screens/chat.py, goz/agent/tools/base.py, goz/agent/tools/file_tools.py,\n\
+    \    goz/agent/tools/bash_tool.py.\n\n    - Ran focused baseline tests: uv run\
+    \ pytest -q tests/test_e2e_api_client.py tests/test_session_persistence.py\n \
+    \   tests/test_tui_integration.py tests/test_chat_client.py\n\n    - Result: 120\
+    \ passed, 15 failed. The failures are pre-existing TUI mismatches\n    around\
+    \ chat input/session stubs, not new changes from this task.\n\n\n    Implementation\
+    \ plan for next stage:\n\n    1. Introduce a centralized agent/TUI error model\
+    \ for recoverable vs non-recoverable\n    failures, with typed mapping for network/API/tool/session/UI\
+    \ cases and actionable\n    messages.\n\n    2. Add retry orchestration in the\
+    \ interactive agent path with exponential backoff\n    and max 3 retries for retryable\
+    \ network/429/selected 5xx failures, while preserving\n    conversation/session\
+    \ state across retries.\n\n    3. Tighten API error classification so 401 fails\
+    \ fast with auth guidance, 429\n    exposes rate-limit guidance and retry delay\
+    \ messaging, and 500-class errors degrade\n    gracefully after retries.\n\n \
+    \   4. Normalize tool error surfaces so ToolInputError includes field detail,\
+    \ file/path\n    errors include the path and operation, permission errors are\
+    \ surfaced explicitly,\n    and tool timeouts remain recoverable from the UI.\n\
+    \n    5. Expand SessionManager and session load/save call sites to distinguish\
+    \ corrupted,\n    missing, permission, and storage-write failures without crashing,\
+    \ and preserve\n    the current session context when recovery is possible.\n\n\
+    \    6. Update the agent TUI to use the intended chat input widget, ignore empty/whitespace-only\n\
+    \    submissions, keep long/unicode input intact, show visible dismissible error\
+    \ notifications,\n    and add graceful quit flow with unsaved-changes confirmation.\n\
+    \n    7. Add focused tests first/tight for retry behavior, session recovery, UI\
+    \ notifications,\n    empty input, quit-with-unsaved-changes, and context preservation\
+    \ after failures.\n\n\n    Refined acceptance criteria for implementation:\n\n\
+    \    - Retry policy should mean 3 total attempts maximum (initial attempt plus\
+    \ up to\n    2 retries) unless product explicitly wants 3 retries after the first\
+    \ call.\n\n    - Automatic retry applies only to retryable network failures, timeouts,\
+    \ 429, and\n    selected transient 5xx responses; 401 and tool validation/file\
+    \ errors should fail\n    fast with guidance.\n\n    - Context preservation means\
+    \ no loss of chat history/session metadata after recoverable\n    errors and after\
+    \ retry exhaustion.\n\n    - Graceful shutdown means prompting only when there\
+    \ are unsaved changes or unsaved\n    session state.\n\n\n    PM sizing:\n\n \
+    \   - PM_COMPLEXITY: complex\n\n    - PLANNED_EFFORT: l\n\n\n    Risks and notes:\n\
+    \n    - There is baseline TUI debt before starting this task: current tests expect\
+    \ ChatInput\n    but ChatScreen mounts textual.widgets.Input, and AgentApp.load_session\
+    \ currently\n    raises FileNotFoundError rather than behaving like the older\
+    \ stub tests expected.\n\n    - The current API client already has retry/backoff\
+    \ at the HTTP wrapper layer.\n    The new work should avoid double-retrying in\
+    \ a way that multiplies wait time unexpectedly;\n    central retry ownership should\
+    \ be explicit.'\n  files_changed: []\n  created_at: '2026-04-04T18:30:02+00:00'\n\
+    - role: swe\n  step: implementing\n  verdict: pass\n  message: 'Implemented comprehensive\
+    \ recoverable error handling across chat, agent\n    core, sessions, and agent\
+    \ TUI. Added chat retry handling with exponential backoff\n    for transient failures\
+    \ (network, timeout, 429, 5xx) while still failing fast on\n    auth errors; API/server/rate-limit\
+    \ errors now surface actionable guidance. Hardened\n    AgentCore so tool validation,\
+    \ file-not-found, permission, timeout, and API failures\n    are formatted into\
+    \ user-facing assistant/tool messages without dropping the current\n    conversation\
+    \ context, preserving the triggering user turn in history after recoverable\n\
+    \    failures. Hardened SessionManager save/load paths for corrupted session files,\n\
+    \    permission failures, missing directories, and disk-full save errors with\
+    \ path-specific\n    recovery guidance. Added unsaved-change tracking to AgentApp\
+    \ plus quit confirmation,\n    and wired ChatScreen input/clear/quit flows to\
+    \ preserve dirty-state handling.\n\n\n    Verification run:\n\n    - uv run pytest\
+    \ -q tests/test_chat_client.py tests/test_sessions.py tests/test_agent_tui.py\n\
+    \    tests/test_agent_core.py\n\n    - uv run pytest -q tests/test_session_commands.py\
+    \ tests/test_session_persistence.py\n\n\n    Evidence against acceptance criteria:\n\
+    \n    - Network errors / timeouts with retry: covered by new ChatClient retry\
+    \ tests\n    for timeout exhaustion and transient 429/server retry flow in tests/test_chat_client.py\n\
+    \    plus existing chat client error tests.\n\n    - API errors 401/429/500: auth\
+    \ remains non-retry; 429 and 5xx now retry with actionable\n    messages and are\
+    \ covered by tests/test_chat_client.py.\n\n    - Tool errors: AgentCore now formats\
+    \ invalid input, file-not-found, permission,\n    timeout, and generic tool failures\
+    \ into actionable tool-result text; covered by\n    tests/test_agent_core.py and\
+    \ existing tool/session suites.\n\n    - Exponential backoff max 3 attempts total:\
+    \ implemented in ChatClient with 2 retries\n    after initial attempt, matching\
+    \ the existing repository retry contract and tests.\n\n    - User-friendly actionable\
+    \ messages: added in goz/api/errors.py, goz/agent/core.py,\n    and goz/agent/sessions.py.\n\
+    \n    - Context preservation after errors: verified in tests/test_agent_core.py\
+    \ by asserting\n    the original user message remains in history after API failure.\n\
+    \n    - Graceful shutdown with unsaved changes prompt: implemented in AgentApp/action_quit\n\
+    \    and covered in tests/test_agent_tui.py.\n\n\n    Residual note: the targeted\
+    \ chat-client suite still emits existing AsyncMock iteration\n    warnings in\
+    \ older stream-mocking tests, but the suite passes and no functional\n    failure\
+    \ was observed.'\n  files_changed: []\n  created_at: '2026-04-04T18:37:18+00:00'\n\
+    - role: qa\n  step: testing\n  verdict: reject\n  message: \"STAGE_RESULT:\\n{\\\
+    \"verdict\\\":\\\"reject\\\",\\\"summary\\\":\\\"Focused verification\\\n    \\\
+    \ passed 112 tests, but automatic retry stops after 2 retries instead of the required\\\
+    \n    \\ max 3 retries.\\\",\\\"files_changed\\\":[\\\"goz/agent/chat_client.py\\\
+    \",\\\"goz/agent/core.py\\\"\\\n    ,\\\"goz/agent/sessions.py\\\",\\\"goz/agent/tui/app.py\\\
+    \",\\\"goz/agent/tui/screens/chat.py\\\"\\\n    ,\\\"goz/api/errors.py\\\",\\\"\
+    tests/test_agent_core.py\\\",\\\"tests/test_agent_tui.py\\\"\\\n    ,\\\"tests/test_chat_client.py\\\
+    \",\\\"tests/test_sessions.py\\\"],\\\"tests\\\":{\\\"added\\\"\\\n    :11,\\\"\
+    passing\\\":112},\\\"warnings\\\":[\\\"Focused pytest run emitted 4 RuntimeWarning\\\
+    \n    \\ entries about an unawaited AsyncMock in streaming tests, but the suite\
+    \ still\\\n    \\ passed.\\\",\\\"Workspace task record for this work is T-0002\
+    \ even though the stage\\\n    \\ prompt referred to T-0005.\\\"],\\\"follow_up_tasks\\\
+    \":[\\\"Update chat retry logic\\\n    \\ and tests so recoverable network/API\
+    \ failures allow up to 3 retries (4 total\\\n    \\ attempts) with exponential\
+    \ backoff, matching the acceptance criteria.\\\"],\\\"\\\n    acceptance_criteria\\\
+    \":[{\\\"criterion\\\":\\\"Network errors: connection failures, timeouts\\\n \
+    \   \\ with retry\\\",\\\"status\\\":\\\"partially_met\\\",\\\"evidence\\\":\\\
+    \"Focused tests in tests/test_chat_client.py\\\n    \\ pass for connection failure\
+    \ and timeout handling, but reproduction shows only\\\n    \\ 2 retries instead\
+    \ of the required max 3 retries.\\\"},{\\\"criterion\\\":\\\"API errors:\\\n \
+    \   \\ 401 auth, 429 rate limit, 500 server errors\\\",\\\"status\\\":\\\"partially_met\\\
+    \",\\\"\\\n    evidence\\\":\\\"Focused tests pass for 401/429/500 handling and\
+    \ user-facing messages,\\\n    \\ but 429/500 retry exhaustion currently stops\
+    \ after 2 retries.\\\"},{\\\"criterion\\\"\\\n    :\\\"Tool errors: input validation,\
+    \ file not found, permission denied\\\",\\\"status\\\"\\\n    :\\\"met\\\",\\\"\
+    evidence\\\":\\\"tests/test_agent_core.py and existing tool-path handling\\\n\
+    \    \\ verify actionable tool error formatting for invalid input, file not found,\
+    \ and\\\n    \\ permission denied.\\\"},{\\\"criterion\\\":\\\"Automatic retry\
+    \ with exponential backoff\\\n    \\ (max 3 retries)\\\",\\\"status\\\":\\\"not_met\\\
+    \",\\\"evidence\\\":\\\"Observed ChatClient.max_retries\\\n    \\ == 2, with 3\
+    \ total attempts and 2 sleep/backoff calls.\\\"},{\\\"criterion\\\":\\\"\\\n \
+    \   User-friendly error messages with actionable suggestions\\\",\\\"status\\\"\
+    :\\\"met\\\"\\\n    ,\\\"evidence\\\":\\\"Verified in changed error formatting\
+    \ paths for API/tool/session/TUI\\\n    \\ errors and focused tests.\\\"},{\\\"\
+    criterion\\\":\\\"Context preservation after errors\\\"\\\n    ,\\\"status\\\"\
+    :\\\"met\\\",\\\"evidence\\\":\\\"tests/test_agent_core.py verifies the user\\\
+    \n    \\ message remains in history after an API error and an assistant error\
+    \ message\\\n    \\ is added.\\\"},{\\\"criterion\\\":\\\"Graceful shutdown with\
+    \ unsaved changes prompt\\\"\\\n    ,\\\"status\\\":\\\"met\\\",\\\"evidence\\\
+    \":\\\"tests/test_agent_tui.py verifies dirty sessions\\\n    \\ prompt with ConfirmScreen\
+    \ instead of exiting immediately.\\\"}]}\\n\\nEXPECTED behavior:\\\n    \\ recoverable\
+    \ network/API failures should use exponential backoff for up to 3\\\n    \\ retries\
+    \ before surfacing the final error.\\n\\nOBSERVED behavior: ChatClient is\\\n\
+    \    \\ configured with max_retries 2, so it makes only 3 total attempts and sleeps\\\
+    \n    \\ twice before raising the final error. Reproduction output: max_retries\
+    \ 2; stream_calls\\\n    \\ 3; sleep_calls 2; raised ApiError 500 [API_ERROR]\
+    \ Server error from the API.\\\n    \\ Retry shortly; the service may be degraded.\\\
+    n\\nSteps to reproduce:\\n1. Run:\\\n    \\ uv run pytest -q tests/test_chat_client.py\
+    \ tests/test_agent_core.py tests/test_sessions.py\\\n    \\ tests/test_agent_tui.py\\\
+    n2. Run:\\n   uv run python - <<\\\"PY\\\"\\n   import asyncio\\n\\\n    \\  \
+    \ from unittest.mock import AsyncMock, MagicMock, patch\\n   import anthropic\\\
+    n\\\n    \\   from goz.agent.chat_client import ChatClient\\n   from goz.config\
+    \ import Config\\n\\\n    \\n   async def main():\\n       client = ChatClient(Config(zai_token=\\\
+    \"test-token\\\"\\\n    ))\\n       print(\\\"max_retries\\\", client.max_retries)\\\
+    n       mock_response =\\\n    \\ MagicMock(); mock_response.status_code = 500\\\
+    n       class ErrorContext:\\n \\\n    \\          async def __aenter__(self):\\\
+    n               raise anthropic.APIStatusError(message=\\\"\\\n    Server unavailable\\\
+    \", response=mock_response, body=None)\\n           async def\\\n    \\ __aexit__(self,\
+    \ *args):\\n               pass\\n       with patch.object(client._client,\\\n\
+    \    \\ \\\"messages\\\") as mock_messages, patch(\\\"goz.agent.chat_client.asyncio.sleep\\\
+    \"\\\n    , new=AsyncMock()) as mock_sleep:\\n           mock_messages.stream.side_effect\\\
+    \n    \\ = [ErrorContext(), ErrorContext(), ErrorContext()]\\n           try:\\\
+    n      \\\n    \\         async for _ in client.chat_completion([{\\\"role\\\"\
+    : \\\"user\\\", \\\"content\\\"\\\n    : \\\"Hello\\\"}]):\\n                \
+    \   pass\\n           except Exception as e:\\n\\\n    \\               print(\\\
+    \"raised\\\", type(e).__name__, getattr(e, \\\"statusCode\\\"\\\n    , None),\
+    \ str(e))\\n           print(\\\"stream_calls\\\", mock_messages.stream.call_count)\\\
+    n\\\n    \\           print(\\\"sleep_calls\\\", mock_sleep.await_count)\\n  \
+    \ asyncio.run(main())\\n\\\n    \\   PY\\n\\nCriteria not met: Automatic retry\
+    \ with exponential backoff (max 3 retries),\\\n    \\ and the retry portions of\
+    \ the network/API criteria.\\nCriteria already satisfied:\\\n    \\ tool error\
+    \ formatting, user-friendly actionable messages, context preservation\\\n    \\\
+    \ after errors, and graceful shutdown with unsaved changes prompt.\"\n  files_changed:\
+    \ []\n  created_at: '2026-04-04T18:39:38+00:00'\n- role: reviewer\n  step: accepting\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 7
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "diff --git a/.litehive/state.yaml b/.litehive/state.yaml\nindex dded2b0..00951bc\
+    \ 100644\n--- a/.litehive/state.yaml\n+++ b/.litehive/state.yaml\n@@ -1,10 +1,10\
+    \ @@\n-active_task_id: null\n+active_task_id: T-0002\n mode: implementation\n\
+    \ queue:\n+- T-0002\n - T-0003\n - T-0004\n - T-0006\n-- T-0002\n - T-0001\n -\
+    \ T-0013\n pool_stop_reason: null\ndiff --git a/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\
+    \ b/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    index a6b1aeb..5b3f032 100644\n--- a/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    +++ b/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    @@ -6,13 +6,13 @@ task_type: bugfix\n engine: null\n model: null\n mode: implementation\n\
+    -status: queued\n-pipeline_status: backlog\n+status: in_progress\n+pipeline_status:\
+    \ grooming\n priority: medium\n pm_complexity: complex\n planned_effort: l\n created_at:\
+    \ '2026-04-04T18:29:37+00:00'\n-updated_at: '2026-04-04T18:29:37+00:00'\n+updated_at:\
+    \ '2026-04-04T18:45:00+00:00'\n goal: Implement error handling for network errors,\
+    \ API errors, tool errors, session\n   errors, UI errors, and edge cases with\
+    \ retry logic and graceful degradation\n acceptance_criteria:\n@@ -23,8 +23,18\
+    \ @@ acceptance_criteria:\n - User-friendly error messages with actionable suggestions\n\
+    \ - Context preservation after errors\n - Graceful shutdown with unsaved changes\
+    \ prompt\n-constraints: []\n-plan: []\n+constraints:\n+- Keep changes scoped to\
+    \ the task.\n+- Avoid multiplying retry layers across the API client and agent\
+    \ orchestration path.\n+plan:\n+- Confirm the retry contract and whether \"max\
+    \ 3 retries\" means 3 retries after the\n+  initial attempt or 3 total attempts.\n\
+    +- Update the chat retry path to match the accepted retry contract without regressing\n\
+    +  existing API and TUI behavior.\n+- Add or adjust focused tests for retry exhaustion,\
+    \ backoff count, and actionable\n+  error messaging.\n+- Re-run the targeted pytest\
+    \ suites for chat, agent core, sessions, and TUI flows\n+  before re-review.\n\
+    \ human_checkpoints: []\n subagents: []\n git:\ndiff --git a/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\
+    \ b/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\n\
+    index dc66301..7eb8787 100644\n--- a/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\n\
+    +++ b/.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\n\
+    @@ -298,3 +298,287 @@\n     \\ preservation after errors, and graceful shutdown\
+    \ with unsaved changes prompt.\"\n   files_changed: []\n   created_at: '2026-04-04T18:42:11+00:00'\n\
+    +- role: planner\n+  step: grooming\n+  verdict: pass\n+  message: 'STAGE_RESULT:\n\
+    +\n+    {\"verdict\":\"pass\",\"summary\":\"Registered T-0002 as the active grooming\
+    \ task in\n+    this workspace and completed its task metadata with explicit plan\
+    \ and stage state.\",\"files_changed\":[\".litehive/state.yaml\",\".litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\"\
+    ],\"tests\":{\"added\":0,\"passing\":0},\"warnings\":[\"active_task_id:\n+   \
+    \ T-0002\n+\n+    active: T-0002 [in_progress/grooming] priority=medium engine=codex\
+    \ (default) model=default\n+    title=Comprehensive error handling and edge cases\
+    \ depends_on=-\n+\n+    queue_length: 6\n+\n+    1. T-0002 [in_progress/grooming]\
+    \ priority=medium engine=codex (default) model=default\n+    title=Comprehensive\
+    \ error handling and edge cases depends_on=- still fails in\n+    this workspace\
+    \ because the queue references missing local task records T-0003,\n+    T-0004,\
+    \ and T-0006; this did not block routing T-0002 but should be repaired separately.\"\
+    ],\"follow_up_tasks\":[{\"title\":\"Repair\n+    stale queue references in workspace\
+    \ state\",\"rationale\":\"The workspace queue contains\n+    task IDs without\
+    \ local task records, which breaks active_task_id: T-0002\n+\n+    active: T-0002\
+    \ [in_progress/grooming] priority=medium engine=codex (default) model=default\n\
+    +    title=Comprehensive error handling and edge cases depends_on=-\n+\n+    queue_length:\
+    \ 6\n+\n+    1. T-0002 [in_progress/grooming] priority=medium engine=codex (default)\
+    \ model=default\n+    title=Comprehensive error handling and edge cases depends_on=-\
+    \ even after T-0002\n+    is routed correctly.\",\"blocking\":false,\"task_type\"\
+    :\"process\"}],\"acceptance_criteria\":[\"workspace:\n+    /home/alexey/git/goz/.litehive/worktrees/T-0006-register-and-activate-t-0002-in-litehive\n\
+    +\n+    default_engine: codex\n+\n+    mode: implementation\n+\n+    active_task_id:\
+    \ T-0002\n+\n+    queued_tasks: 6\n+\n+    pool_stop_reason: None\n+\n+    queue_head:\
+    \ T-0002\n+\n+    active_task_title: Comprehensive error handling and edge cases\n\
+    +\n+    active_task_status: in_progress/grooming\n+\n+    active_stage: grooming\n\
+    +\n+    active_engine: codex shows , , and  in this workspace.\",\"A  record exists\
+    \ for\n+    T-0002 and now contains goal, acceptance criteria, PM sizing (, ),\
+    \ and explicit\n+    stage metadata (, ) plus a concrete implementation plan.\"\
+    ,\" succeeded from this\n+    workspace.\"]}\n+\n+\n+    What I verified:\n+\n\
+    +    - Ran workspace: /home/alexey/git/goz/.litehive/worktrees/T-0006-register-and-activate-t-0002-in-litehive\n\
+    +\n+    default_engine: codex\n+\n+    mode: implementation\n+\n+    active_task_id:\
+    \ T-0002\n+\n+    queued_tasks: 6\n+\n+    pool_stop_reason: None\n+\n+    queue_head:\
+    \ T-0002\n+\n+    active_task_title: Comprehensive error handling and edge cases\n\
+    +\n+    active_task_status: in_progress/grooming\n+\n+    active_stage: grooming\n\
+    +\n+    active_engine: codex from the workspace root and confirmed , , , and .\n\
+    +\n+    - Confirmed  exists and contains the task goal, acceptance criteria, PM\
+    \ sizing,\n+    constraints, and a non-empty execution plan.\n+\n+    - Confirmed\
+    \ the workspace state now points at T-0002 via .\n+\n+    - This report command\
+    \ succeeded with  from the current workspace.\n+\n+\n+    Tests run:\n+\n+   \
+    \ - No repository test suite was run in grooming; verification for this stage\
+    \ was\n+    limited to Litehive CLI/task-artifact checks (workspace: /home/alexey/git/goz/.litehive/worktrees/T-0006-register-and-activate-t-0002-in-litehive\n\
+    +\n+    default_engine: codex\n+\n+    mode: implementation\n+\n+    active_task_id:\
+    \ T-0002\n+\n+    queued_tasks: 6\n+\n+    pool_stop_reason: None\n+\n+    queue_head:\
+    \ T-0002\n+\n+    active_task_title: Comprehensive error handling and edge cases\n\
+    +\n+    active_task_status: in_progress/grooming\n+\n+    active_stage: grooming\n\
+    +\n+    active_engine: codex, task record inspection, and successful ).\n+\n+\n\
+    +    Planner handoff:\n+\n+    - T-0002 should proceed from grooming into implementation\
+    \ with the existing rejected\n+    QA finding as the current product gap: retry\
+    \ behavior needs to align with the\n+    accepted max-retries contract.\n+\n+\
+    \    - The task record now states the concrete implementation plan: confirm retry\
+    \ semantics,\n+    update chat retry orchestration, adjust focused tests, and\
+    \ rerun the targeted\n+    pytest suites before re-review.\n+\n+    - Queue integrity\
+    \ is still partially broken because other task IDs referenced\n+    in  have no\
+    \ local records; treat that as separate cleanup unless it blocks later\n+    routing.'\n\
+    +  files_changed: []\n+  created_at: '2026-04-04T18:47:22+00:00'\n+- role: planner\n\
+    +  step: grooming\n+  verdict: pass\n+  message: 'STAGE_RESULT:\n+\n+    {\"verdict\"\
+    :\"pass\",\"summary\":\"Registered T-0002 as the active grooming task in\n+  \
+    \  this workspace and completed its task metadata with explicit plan and stage\
+    \ state.\",\"files_changed\":[\".litehive/state.yaml\",\".litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\"\
+    ],\"tests\":{\"added\":0,\"passing\":0},\"warnings\":[\"`litehive\n+    queue`\
+    \ still fails in this workspace because the queue references missing local\n+\
+    \    task records T-0003, T-0004, and T-0006; this did not block routing T-0002\
+    \ but\n+    should be repaired separately.\"],\"follow_up_tasks\":[{\"title\"\
+    :\"Repair stale queue\n+    references in workspace state\",\"rationale\":\"The\
+    \ workspace queue contains task\n+    IDs without local task records, which breaks\
+    \ `litehive queue` even after T-0002\n+    is routed correctly.\",\"blocking\"\
+    :false,\"task_type\":\"process\"}],\"acceptance_criteria\":[\"`litehive\n+   \
+    \ status` shows `active_task_id: T-0002`, `queue_head: T-0002`, and `active_stage:\n\
+    +    grooming` in this workspace.\",\"A `.litehive/tasks/...` record exists for\
+    \ T-0002\n+    and now contains goal, acceptance criteria, PM sizing (`pm_complexity:\
+    \ complex`,\n+    `planned_effort: l`), and explicit stage metadata (`status:\
+    \ in_progress`, `pipeline_status:\n+    grooming`) plus a concrete implementation\
+    \ plan.\",\"`litehive report --task-id T-0002\n+    --verdict pass --role planner\
+    \ --step grooming ...` succeeds from this workspace.\"]}\n+\n+\n+    What I verified:\n\
+    +\n+    - Ran `litehive status` from the workspace root and confirmed `active_task_id:\n\
+    +    T-0002`, `queue_head: T-0002`, `active_task_status: in_progress/grooming`,\
+    \ and\n+    `active_stage: grooming`.\n+\n+    - Confirmed `.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml`\n\
+    +    exists and contains the task goal, acceptance criteria, PM sizing, constraints,\n\
+    +    and a non-empty execution plan.\n+\n+    - Confirmed the workspace state\
+    \ now points at T-0002 via `.litehive/state.yaml`.\n+\n+    - This report command\
+    \ succeeded with `--task-id T-0002` from the current workspace.\n+\n+\n+    Tests\
+    \ run:\n+\n+    - No repository test suite was run in grooming; verification for\
+    \ this stage was\n+    limited to Litehive CLI/task-artifact checks (`litehive\
+    \ status`, task record inspection,\n+    and successful `litehive report`).\n\
+    +\n+\n+    Planner handoff:\n+\n+    - T-0002 should proceed from grooming into\
+    \ implementation with the existing rejected\n+    QA finding as the current product\
+    \ gap: retry behavior needs to align with the\n+    accepted max-retries contract.\n\
+    +\n+    - The task record now states the concrete implementation plan: confirm\
+    \ retry semantics,\n+    update chat retry orchestration, adjust focused tests,\
+    \ and rerun the targeted\n+    pytest suites before re-review.\n+\n+    - Queue\
+    \ integrity is still partially broken because other task IDs referenced\n+   \
+    \ in `.litehive/state.yaml` have no local records; treat that as separate cleanup\n\
+    +    unless it blocks later routing.'\n+  files_changed: []\n+  created_at: '2026-04-04T18:47:44+00:00'\n\
+    +- role: swe\n+  step: implementing\n+  verdict: pass\n+  message: 'STAGE_RESULT:\n\
+    +\n+    {\"verdict\":\"pass\",\"summary\":\"Verified that T-0002 is registered\
+    \ locally, active\n+    in this workspace, and reportable from the Litehive CLI.\"\
+    ,\"files_changed\":[\".litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\"\
+    ],\"tests\":{\"added\":0,\"passing\":2},\"warnings\":[\"No\n+    additional manual\
+    \ file edits were required in this turn because the workspace\n+    already contained\
+    \ the T-0002 task record and active routing state.\",\"The queue\n+    still references\
+    \ task IDs without local records (for example T-0003, T-0004, and\n+    T-0006),\
+    \ but that does not block T-0002 activation/reporting.\"],\"follow_up_tasks\"\
+    :[],\"acceptance_criteria\":[{\"criterion\":\"litehive\n+    status shows active_task_id:\
+    \ T-0002 or the workspace is otherwise explicitly routed\n+    to this task.\"\
+    ,\"status\":\"met\",\"evidence\":\"Ran litehive status in the workspace\n+   \
+    \ root and observed active_task_id: T-0002, queue_head: T-0002, active_task_status:\n\
+    +    in_progress/grooming, and active_stage: grooming.\"},{\"criterion\":\"A .litehive/tasks/...\n\
+    +    record exists for T-0002 with goal, acceptance criteria, PM sizing, and stage\n\
+    +    metadata.\",\"status\":\"met\",\"evidence\":\"Verified .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    +    exists and contains goal, acceptance_criteria, pm_complexity: complex, planned_effort:\n\
+    +    l, mode: implementation, status: in_progress, and pipeline_status: grooming.\"\
+    },{\"criterion\":\"litehive\n+    report --task-id T-0002 ... succeeds from this\
+    \ workspace.\",\"status\":\"met\",\"evidence\":\"This\n+    report command succeeded\
+    \ from the workspace root using --task-id T-0002.\"}]}\n+\n+\n+    Verification\
+    \ performed:\n+\n+    - Ran litehive status from the workspace root and confirmed\
+    \ the workspace is actively\n+    routed to T-0002.\n+\n+    - Inspected .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    +    and confirmed the task record includes the requested goal, acceptance criteria,\n\
+    +    PM sizing, and stage metadata.\n+\n+    - Submitted this implementation-stage\
+    \ result with litehive report --task-id T-0002\n+    from the current workspace,\
+    \ which completed successfully.\n+\n+\n+    Tests run:\n+\n+    - litehive status\n\
+    +\n+    - litehive report --task-id T-0002 --verdict pass --role swe --step implementing\n\
+    +    ...\n+\n+\n+    Evidence:\n+\n+    - active_task_id is T-0002 in workspace\
+    \ state.\n+\n+    - T-0002 task record exists under .litehive/tasks/ and includes\
+    \ the required metadata\n+    fields.\n+\n+    - The report command with explicit\
+    \ task ID succeeded from this workspace.'\n+  files_changed:\n+  - .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\n\
+    +  created_at: '2026-04-04T18:48:44+00:00'\n+- role: qa\n+  step: testing\n+ \
+    \ verdict: pass\n+  message: 'STAGE_RESULT:\n+\n+    {\"verdict\":\"pass\",\"\
+    summary\":\"Verified T-0002 exists as a Litehive task record,\n+    is the active\
+    \ workspace task, and accepts qa reports from this workspace.\",\"files_changed\"\
+    :[\".litehive/state.yaml\",\".litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\"\
+    ,\".litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\"\
+    ],\"tests\":{\"added\":0,\"passing\":2},\"warnings\":[],\"follow_up_tasks\":[],\"\
+    acceptance_criteria\":[{\"criterion\":\"litehive\n+    status shows active_task_id:\
+    \ T-0002 or the workspace is otherwise explicitly routed\n+    to this task.\"\
+    ,\"status\":\"met\",\"evidence\":\"`litehive status` output in this workspace\n\
+    +    shows `active_task_id: T-0002`, `queue_head: T-0002`, and `active_stage:\
+    \ grooming`.\"},{\"criterion\":\"A\n+    .litehive/tasks/... record exists for\
+    \ T-0002 with goal, acceptance criteria, PM\n+    sizing, and stage metadata.\"\
+    ,\"status\":\"met\",\"evidence\":\"Verified `.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml`\n\
+    +    contains `goal`, `acceptance_criteria`, `pm_complexity`, `planned_effort`,\
+    \ and\n+    stage/status fields including `mode`, `status`, and `pipeline_status`;\
+    \ matching\n+    thread metadata exists in `.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml`.\"\
+    },{\"criterion\":\"litehive\n+    report --task-id T-0002 ... succeeds from this\
+    \ workspace.\",\"status\":\"met\",\"evidence\":\"This\n+    QA submission was\
+    \ executed successfully with `litehive report --verdict pass --role\n+    qa --step\
+    \ testing --task-id T-0002 ...` from the workspace root.\"}]}\n+\n+\n+    Verified\
+    \ commands:\n+\n+    1. `litehive status`\n+\n+    2. `litehive report --task-id\
+    \ T-0002 --help`\n+\n+    3. `litehive report --verdict pass --role qa --step\
+    \ testing --task-id T-0002 ...`\n+\n+\n+    Evidence:\n+\n+    - `litehive status`\
+    \ reports `active_task_id: T-0002` and `active_stage: grooming`.\n+\n+    - `.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml`\n\
+    +    exists and includes goal, acceptance criteria, PM sizing, and stage metadata.\n\
+    +\n+    - The required `litehive report --task-id T-0002 ...` command succeeds\
+    \ from this\n+    workspace.'\n+  files_changed:\n+  - .litehive/state.yaml\n\
+    +  - .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml\n\
+    +  - .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml\n\
+    +  created_at: '2026-04-04T18:49:36+00:00'\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: message
+  engine: codex
+  sequence: 8
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: assistant
+  content: "The artifact state matches this task\u2019s process-level goal: T-0002\
+    \ exists, is active, and accepts reports from this workspace. I\u2019m submitting\
+    \ the reviewer acceptance report now with the concrete evidence and commands used."
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: tool_result
+  engine: codex
+  sequence: 9
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: 'task: T-0002
+
+    step: accepting
+
+    verdict: pass
+
+    role: reviewer
+
+    '
+  error: null
+  metadata:
+    exit_code: 0
+- kind: message
+  engine: codex
+  sequence: 10
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: assistant
+  content: 'STAGE_RESULT:
+
+    {"verdict":"pass","summary":"Accepted T-0002 registration and activation in this
+    workspace after verifying routing, task record metadata, and reportability.","files_changed":[".litehive/state.yaml",".litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml",".litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml"],"tests":{"added":0,"passing":3},"warnings":["The
+    workspace queue still references other task IDs without local records, but that
+    does not block T-0002 activation or reporting for this task."],"follow_up_tasks":[],"acceptance_criteria":[{"criterion":"litehive
+    status shows active_task_id: T-0002 or the workspace is otherwise explicitly routed
+    to this task.","status":"met","evidence":"`litehive status` reports `active_task_id:
+    T-0002`, `queue_head: T-0002`, `active_task_status: in_progress/grooming`, and
+    `active_stage: grooming`."},{"criterion":"A .litehive/tasks/... record exists
+    for T-0002 with goal, acceptance criteria, PM sizing, and stage metadata.","status":"met","evidence":"Verified
+    `.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml`
+    contains `goal`, `acceptance_criteria`, `pm_complexity: complex`, `planned_effort:
+    l`, `mode: implementation`, `status: in_progress`, and `pipeline_status: grooming`."},{"criterion":"litehive
+    report --task-id T-0002 ... succeeds from this workspace.","status":"met","evidence":"Confirmed
+    command support with `litehive report --task-id T-0002 --help` and successfully
+    submitted the reviewer acceptance report for `T-0002` from this workspace."}]}
+
+    FOLLOW_UP_TASKS:
+
+    []'
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: usage
+  engine: codex
+  sequence: 11
+  timestamp: '2026-04-04T18:50:30+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata:
+    input_tokens: 90573
+    output_tokens: 2019
+engine: codex
+task_id: T-0006
+subagent_id: SA-0004
+started_at: null
+completed_at: null
+event_counts:
+  message: 4
+  tool_result: 7
+  usage: 1

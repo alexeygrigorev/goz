@@ -1,0 +1,11 @@
+Reading additional input from stdin...
+2026-04-04T18:34:20.322595Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in /home/alexey/git/goz/.litehive/worktrees/T-0005-comprehensive-error-handling-and-edge-cases/goz/agent/tui/app.py:
+        # Restore session metadata
+        self.session_id = session.id
+        self.current_agent_type = session.agent_type
+2026-04-04T18:36:06.854907Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in /home/alexey/git/goz/.litehive/worktrees/T-0005-comprehensive-error-handling-and-edge-cases/goz/agent/chat_client.py:
+from __future__ import annotations
+import asyncio
+import json
+from dataclasses import dataclass
+from typing import AsyncIterator, Literal

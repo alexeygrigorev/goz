@@ -1,0 +1,727 @@
+events:
+- kind: message
+  engine: codex
+  sequence: 0
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: assistant
+  content: "I\u2019m resuming the grooming stage from the recorded handoff and checking\
+    \ the current task state plus the retry-gap evidence so the next implementation\
+    \ pass has a precise target."
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: tool_result
+  engine: codex
+  sequence: 1
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: '/home/alexey/git/goz/.litehive/worktrees/T-0002-comprehensive-error-handling-and-edge-cases
+
+    '
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 2
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: '.litehive/config.yaml
+
+    .litehive/context.md
+
+    .litehive/state.yaml
+
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/task.yaml
+
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/journal.md
+
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/thread.yaml
+
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/brief.md
+
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/task.yaml
+
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/thread.yaml
+
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/brief.md
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/journal.md
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml
+
+    '
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 3
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: 'tests/test_chat_client.py:395:        """429 errors should retry with
+    exponential backoff and preserve success."""
+
+    tests/test_chat_client.py:448:        """5xx errors should retry up to the configured
+    maximum."""
+
+    tests/test_chat_client.py:532:    async def test_12b_timeout_error_includes_retry_guidance_after_exhaustion(self,
+    config):
+
+    goz/agent/chat_client.py:135:        self.max_retries = 2
+
+    goz/agent/chat_client.py:136:        self.base_retry_delay = 1.0
+
+    goz/agent/chat_client.py:200:        for attempt in range(self.max_retries + 1):
+
+    goz/agent/chat_client.py:221:                if attempt >= self.max_retries:
+
+    goz/agent/chat_client.py:223:                await self._sleep_before_retry(attempt)
+
+    goz/agent/chat_client.py:226:                    "Connection failed while contacting
+    the API. Check your network and retry."
+
+    goz/agent/chat_client.py:228:                if attempt >= self.max_retries:
+
+    goz/agent/chat_client.py:230:                await self._sleep_before_retry(attempt)
+
+    goz/agent/chat_client.py:243:                        "Rate limit exceeded. Wait
+    a moment and retry, or reduce request volume.",
+
+    goz/agent/chat_client.py:248:                        "Server error from the API.
+    Retry shortly; the service may be degraded.",
+
+    goz/agent/chat_client.py:254:                if attempt >= self.max_retries or
+    status_code < 500 and status_code != 429:
+
+    goz/agent/chat_client.py:256:                await self._sleep_before_retry(attempt)
+
+    goz/agent/chat_client.py:354:    async def _sleep_before_retry(self, attempt:
+    int) -> None:
+
+    goz/agent/chat_client.py:355:        """Sleep using exponential backoff before
+    retrying."""
+
+    goz/agent/chat_client.py:356:        await asyncio.sleep(self.base_retry_delay
+    * (2 ** attempt))
+
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/task.yaml:43:retry_policy:
+
+    .litehive/tasks/T-0001-search-read-repo-tool-wrappers-for-api-clients/task.yaml:44:  max_retries:
+    null
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml:17:  errors,
+    UI errors, and edge cases with retry logic and graceful degradation
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml:19:-
+    ''Network errors: connection failures, timeouts with retry''
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml:22:-
+    Automatic retry with exponential backoff (max 3 retries)
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml:38:retry_policy:
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml:39:  max_retries:
+    null
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:13:    text
+    without typed recovery or user-facing retry state; ChatScreen uses a plain
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:15:    error
+    notification/retry path; AgentApp quits immediately and does not prompt
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:40:    2.
+    Add retry orchestration in the interactive agent path with exponential backoff
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:41:    and
+    max 3 retries for retryable network/429/selected 5xx failures, while preserving
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:45:    exposes
+    rate-limit guidance and retry delay messaging, and 500-class errors degrade
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:60:    7.
+    Add focused tests first/tight for retry behavior, session recovery, UI notifications,
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:66:    -
+    Retry policy should mean 3 total attempts maximum (initial attempt plus up to
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:69:    -
+    Automatic retry applies only to retryable network failures, timeouts, 429, and
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:74:    errors
+    and after retry exhaustion.
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:93:    -
+    The current API client already has retry/backoff at the HTTP wrapper layer.
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:94:    The
+    new work should avoid double-retrying in a way that multiplies wait time unexpectedly;
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:95:    central
+    retry ownership should be explicit.''
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:102:    core,
+    sessions, and agent TUI. Added chat retry handling with exponential backoff
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:124:    -
+    Network errors / timeouts with retry: covered by new ChatClient retry tests
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:125:    for
+    timeout exhaustion and transient 429/server retry flow in tests/test_chat_client.py
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:128:    -
+    API errors 401/429/500: auth remains non-retry; 429 and 5xx now retry with actionable
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:136:    after
+    initial attempt, matching the existing repository retry contract and tests.
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:157:    \
+    passed 112 tests, but automatic retry stops after 2 retries instead of the required\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:165:    \
+    prompt referred to T-0005.\"],\"follow_up_tasks\":[\"Update chat retry logic\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:169:    \
+    with retry\",\"status\":\"partially_met\",\"evidence\":\"Focused tests in tests/test_chat_client.py\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:174:    \
+    but 429/500 retry exhaustion currently stops after 2 retries.\"},{\"criterion\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:178:    \
+    permission denied.\"},{\"criterion\":\"Automatic retry with exponential backoff\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:179:    \
+    (max 3 retries)\",\"status\":\"not_met\",\"evidence\":\"Observed ChatClient.max_retries\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:191:    \
+    configured with max_retries 2, so it makes only 3 total attempts and sleeps\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:192:    \
+    twice before raising the final error. Reproduction output: max_retries 2; stream_calls\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:194:    \
+    Retry shortly; the service may be degraded.\n\nSteps to reproduce:\n1. Run:\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:200:    ))\n       print(\"max_retries\",
+    client.max_retries)\n       mock_response =\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:213:    \   PY\n\nCriteria
+    not met: Automatic retry with exponential backoff (max 3 retries),\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:214:    \
+    and the retry portions of the network/API criteria.\nCriteria already satisfied:\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:223:    \
+    passed, but retry handling still stops after 2 retries instead of the required\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:232:    :[{\"title\":\"Align
+    retry policy with acceptance criteria\",\"rationale\":\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:235:    goal\":\"Update
+    recoverable retry handling and tests so retryable failures can\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:239:    \
+    in place and tests assert the retry count.\",\"401/auth failures still fail\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:240:    \
+    fast without retry.\"],\"task_type\":\"bugfix\"}],\"acceptance_criteria\":[{\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:241:    criterion\":\"Network
+    errors: connection failures, timeouts with retry\",\"status\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:247:    \
+    but 429 and 500 retry exhaustion still stop after 2 retries.\"},{\"criterion\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:252:    :\"Automatic
+    retry with exponential backoff (max 3 retries)\",\"status\":\"not_met\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:253:    ,\"evidence\":\"Reproduced
+    ChatClient.max_retries == 2 with 3 total attempts and\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:256:    \
+    error formatting includes actionable guidance such as checking tokens, retrying\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:263:    }]}\nFOLLOW_UP_TASKS:\n[{\"title\":\"Align
+    retry policy with acceptance criteria\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:264:    ,\"rationale\":\"Recoverable
+    retryable failures only retry twice today, which\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:265:    \
+    blocks acceptance for this task.\",\"blocking\":true,\"goal\":\"Make retryable\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:268:    \
+    retryable failures.\",\"Focused tests assert 4 total attempts for retryable\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:269:    \
+    429/500/timeout cases.\",\"Non-retryable auth failures still fail fast.\"],\"\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:270:    task_type\":\"bugfix\"}]\nEXPECTED
+    behavior: recoverable network and retryable\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:272:    \
+    the final error.\nOBSERVED behavior: ChatClient is configured with max_retries\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:274:    \
+    Independent reproduction output: max_retries 2; stream_calls 3; sleep_calls\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:275:    \
+    2; raised ApiError 500 [API_ERROR] Server error from the API. Retry shortly;\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:282:    max_retries\",
+    client.max_retries)\n       mock_response = MagicMock(); mock_response.status_code\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:295:    \
+    not met: Automatic retry with exponential backoff (max 3 retries), plus the\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:296:    \
+    retry portion of the network and retryable API criteria.\nCriteria already satisfied:\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:308:    \
+    ChatClient sets max_retries = 2, which yields only 3 total attempts and 2 backoff\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:309:    \
+    sleeps, while this task\u2019s acceptance criterion says automatic retry with\
+
+    .litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/thread.yaml:311:    \
+    this as a narrow bugfix rather than a broad rework: update retryable network/timeout/429/transient-5xx\
+
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/task.yaml:47:retry_policy:
+
+    .litehive/tasks/T-0013-jsonl-cli-mode-for-litehive-engine-integration/task.yaml:48:  max_retries:
+    null
+
+    '
+  error: null
+  metadata:
+    exit_code: 0
+- kind: message
+  engine: codex
+  sequence: 4
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: assistant
+  content: "I\u2019ve confirmed the rejection is still a narrow retry-policy mismatch:\
+    \ the implementation currently hard-codes `max_retries = 2`, which conflicts with\
+    \ this task\u2019s `max 3 retries` acceptance criterion. Next I\u2019m checking\
+    \ the task record/state so the grooming handoff and report line up with Litehive\u2019\
+    s source of truth."
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: tool_result
+  engine: codex
+  sequence: 5
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "id: T-0002\nslug: comprehensive-error-handling-and-edge-cases\ntitle:\
+    \ Comprehensive error handling and edge cases\ndepends_on: []\ntask_type: bugfix\n\
+    engine: null\nmodel: null\nmode: implementation\nstatus: queued\npipeline_status:\
+    \ backlog\npriority: medium\npm_complexity: complex\nplanned_effort: l\ncreated_at:\
+    \ '2026-04-04T18:29:37+00:00'\nupdated_at: '2026-04-04T18:29:37+00:00'\ngoal:\
+    \ Implement error handling for network errors, API errors, tool errors, session\n\
+    \  errors, UI errors, and edge cases with retry logic and graceful degradation\n\
+    acceptance_criteria:\n- 'Network errors: connection failures, timeouts with retry'\n\
+    - 'API errors: 401 auth, 429 rate limit, 500 server errors'\n- 'Tool errors: input\
+    \ validation, file not found, permission denied'\n- Automatic retry with exponential\
+    \ backoff (max 3 retries)\n- User-friendly error messages with actionable suggestions\n\
+    - Context preservation after errors\n- Graceful shutdown with unsaved changes\
+    \ prompt\nconstraints: []\nplan: []\nhuman_checkpoints: []\nsubagents: []\ngit:\n\
+    \  auto_commit: true\n  commit_message: 'litehive: complete T-0002 comprehensive-error-handling-and-edge-cases'\n\
+    \  commit_sha: null\n  checkpoint_base_sha: null\n  checkpoint_attempts: 0\n \
+    \ rolled_back_checkpoint_attempt: null\n  worktree_path: null\nretry_policy:\n\
+    \  max_retries: null\ncreated_from: null\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 6
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: 'active_task_id: null
+
+    mode: implementation
+
+    queue:
+
+    - T-0003
+
+    - T-0004
+
+    - T-0006
+
+    - T-0002
+
+    - T-0001
+
+    - T-0013
+
+    pool_stop_reason: null
+
+    next_task_number: 6
+
+    '
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 7
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "\"\"\"Chat API Client for Z.AI (Issue 17).\n\nThis module provides\
+    \ the ChatClient class for interacting with the Z.AI\nchat API using the Anthropic\
+    \ SDK with tool calling support.\n\nAcceptance Criteria:\n1. ChatClient class\
+    \ exists in goz/agent/chat_client.py\n2. Uses existing Anthropic SDK (same as\
+    \ Vision API)\n3. Uses config.zai_token and config.zai_base_url\n4. chat_completion()\
+    \ method sends messages and returns async iterator\n5. Supports tools parameter\
+    \ for function calling\n6. Supports tool_choice parameter (\"auto\", \"any\")\n\
+    7. Supports stream parameter (True/False)\n8. Response chunks yield text deltas\n\
+    9. Tool calls are properly formatted in stream\n10. Errors raised as appropriate\
+    \ exceptions (AuthError, ApiError, etc.)\n11. Timeout configurable via config\n\
+    \"\"\"\nimport asyncio\nimport json\nfrom dataclasses import dataclass\nfrom typing\
+    \ import Any, AsyncIterator, Literal\n\nimport anthropic\nfrom anthropic import\
+    \ AsyncAnthropic\n\nfrom goz.api.errors import AuthError, ApiError, NetworkError,\
+    \ TimeoutError, ZaiError\nfrom goz.config import Config\n\n\n# Chunk types for\
+    \ streaming responses (from spec)\n@dataclass\nclass ContentBlockStart:\n    \"\
+    \"\"Start of a content block in the stream.\n\n    Attributes:\n        type:\
+    \ The type of content block (\"text\" or \"tool_use\")\n        index: The index\
+    \ of this content block\n        id: Tool call ID (only for tool_use type)\n \
+    \       name: Tool name (only for tool_use type)\n    \"\"\"\n    type: Literal[\"\
+    text\", \"tool_use\"]\n    index: int\n    id: str | None = None\n    name: str\
+    \ | None = None\n\n\n@dataclass\nclass ContentBlockDelta:\n    \"\"\"Delta for\
+    \ a content block in the stream.\n\n    Attributes:\n        type: The type of\
+    \ delta (\"text_delta\" or \"input_json_delta\")\n        index: The index of\
+    \ this content block\n        text: Text content (only for text_delta type)\n\
+    \        partial_json: Partial JSON string (only for input_json_delta type)\n\
+    \    \"\"\"\n    type: Literal[\"text_delta\", \"input_json_delta\"]\n    index:\
+    \ int\n    text: str | None = None\n    partial_json: str | None = None\n\n\n\
+    @dataclass\nclass ContentBlockStop:\n    \"\"\"End of a content block in the stream.\n\
+    \n    Attributes:\n        index: The index of this content block\n    \"\"\"\n\
+    \    index: int\n\n\n@dataclass\nclass MessageStart:\n    \"\"\"Start of the message.\n\
+    \n    Attributes:\n        id: Message ID\n        model: Model name\n    \"\"\
+    \"\n    id: str\n    model: str\n\n\n@dataclass\nclass MessageStop:\n    \"\"\"\
+    End of the message.\n\n    Attributes:\n        stop_reason: Reason for stopping\
+    \ (\"end_turn\", \"max_tokens\", \"tool_use\")\n    \"\"\"\n    stop_reason: Literal[\"\
+    end_turn\", \"max_tokens\", \"tool_use\"]\n\n\n# Union type for all chunk types\n\
+    Chunk = ContentBlockStart | ContentBlockDelta | ContentBlockStop | MessageStart\
+    \ | MessageStop\n\n\nclass ChatClient:\n    \"\"\"Client for Z.AI Chat API with\
+    \ tool calling support.\n\n    This client uses the Anthropic SDK to interact\
+    \ with the Z.AI chat API,\n    supporting streaming responses, tool calling, and\
+    \ various generation\n    parameters.\n\n    Attributes:\n        config: Configuration\
+    \ object containing API credentials and settings\n        _client: Internal AsyncAnthropic\
+    \ client instance\n    \"\"\"\n\n    def __init__(self, config: Config | None\
+    \ = None) -> None:\n        \"\"\"Initialize ChatClient.\n\n        Args:\n  \
+    \          config: Optional config object. If not provided, loads from default\
+    \ location.\n\n        Acceptance Criteria:\n        - Uses config.zai_token and\
+    \ config.zai_base_url (AC 3)\n        - Uses AsyncAnthropic from existing SDK\
+    \ (AC 2)\n        - Timeout is configurable via config (AC 11)\n        \"\"\"\
+    \n        if config is None:\n            from goz.config import load_config\n\
+    \            config = load_config()\n\n        self.config = config\n\n      \
+    \  # Initialize async Anthropic client (same pattern as VisionClient)\n      \
+    \  self._client = AsyncAnthropic(\n            api_key=self.config.zai_token,\n\
+    \            base_url=self.config.zai_base_url,\n            timeout=self.config.timeout,\n\
+    \        )\n        self.max_retries = 2\n        self.base_retry_delay = 1.0\n\
+    \n    async def chat_completion(\n        self,\n        messages: list[dict],\n\
+    \        tools: list[dict] | None = None,\n        tool_choice: Literal[\"auto\"\
+    , \"any\", \"none\"] | dict = \"auto\",\n        stream: bool = True,\n      \
+    \  temperature: float | None = None,\n        max_tokens: int | None = None,\n\
+    \    ) -> AsyncIterator[Chunk]:\n        \"\"\"Stream chat completion with tool\
+    \ calling support.\n\n        Args:\n            messages: Chat history in Anthropic\
+    \ format\n            tools: Tool definitions in Anthropic format (optional)\n\
+    \            tool_choice: How to select tools (\"auto\", \"any\", \"none\", or\
+    \ specific tool dict)\n            stream: Whether to stream response (True) or\
+    \ wait for complete response (False)\n            temperature: Generation temperature\
+    \ (uses config default if None)\n            max_tokens: Max tokens in response\
+    \ (uses config default if None)\n\n        Yields:\n            Chunk objects\
+    \ from the API response\n\n        Raises:\n            AuthError: For 401/403\
+    \ authentication failures\n            ApiError: For other API errors (4xx, 5xx)\n\
+    \            NetworkError: For connection failures\n            TimeoutError:\
+    \ For request timeouts\n\n        Acceptance Criteria:\n        - Returns async\
+    \ iterator (AC 4)\n        - Supports tools parameter (AC 5)\n        - Supports\
+    \ tool_choice parameter (AC 6)\n        - Supports stream parameter (AC 7)\n \
+    \       - Response chunks yield text deltas (AC 8)\n        - Tool calls properly\
+    \ formatted in stream (AC 9)\n        - Errors raised as appropriate exceptions\
+    \ (AC 10)\n        \"\"\"\n        # Build request parameters\n        params:\
+    \ dict = {\n            \"model\": self.config.chat_model,\n            \"messages\"\
+    : messages,\n        }\n\n        # Add optional parameters\n        if tools\
+    \ is not None:\n            params[\"tools\"] = tools\n\n        if tool_choice\
+    \ != \"auto\":\n            params[\"tool_choice\"] = tool_choice\n\n        if\
+    \ temperature is not None:\n            params[\"temperature\"] = temperature\n\
+    \        else:\n            params[\"temperature\"] = self.config.temperature\n\
+    \n        if max_tokens is not None:\n            params[\"max_tokens\"] = max_tokens\n\
+    \        else:\n            params[\"max_tokens\"] = self.config.max_tokens\n\n\
+    \        timeout_ms = int(self.config.timeout * 1000)\n\n        for attempt in\
+    \ range(self.max_retries + 1):\n            try:\n                if stream:\n\
+    \                    async with self._client.messages.stream(**params) as response_stream:\n\
+    \                        async for event in response_stream:\n               \
+    \             chunk = self._convert_sse_event_to_chunk(event)\n              \
+    \              if chunk is not None:\n                                yield chunk\n\
+    \                else:\n                    response = await self._client.messages.create(**params)\n\
+    \                    async for chunk in self._response_to_chunks(response):\n\
+    \                        yield chunk\n                return\n            except\
+    \ anthropic.AuthenticationError as e:\n                status_code = getattr(getattr(e,\
+    \ \"response\", None), \"status_code\", 401)\n                raise AuthError(\n\
+    \                    \"Authentication failed. Check your API token and try again.\"\
+    ,\n                    statusCode=status_code,\n                ) from e\n   \
+    \         except anthropic.APITimeoutError as e:\n                timeout_error\
+    \ = TimeoutError(timeoutMs=timeout_ms)\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: tool_result
+  engine: codex
+  sequence: 8
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: "                timeout_error = TimeoutError(timeoutMs=timeout_ms)\n\
+    \                if attempt >= self.max_retries:\n                    raise timeout_error\
+    \ from e\n                await self._sleep_before_retry(attempt)\n          \
+    \  except anthropic.APIConnectionError as e:\n                network_error =\
+    \ NetworkError(\n                    \"Connection failed while contacting the\
+    \ API. Check your network and retry.\"\n                )\n                if\
+    \ attempt >= self.max_retries:\n                    raise network_error from e\n\
+    \                await self._sleep_before_retry(attempt)\n            except anthropic.APIStatusError\
+    \ as e:\n                status_code = getattr(e, \"status_code\", None) or getattr(\n\
+    \                    getattr(e, \"response\", None), \"status_code\", 500\n  \
+    \              )\n                if status_code in (401, 403):\n            \
+    \        raise AuthError(\n                        \"Authentication failed. Check\
+    \ your API token and try again.\",\n                        statusCode=status_code,\n\
+    \                    ) from e\n\n                if status_code == 429:\n    \
+    \                api_error = ApiError(\n                        \"Rate limit exceeded.\
+    \ Wait a moment and retry, or reduce request volume.\",\n                    \
+    \    statusCode=status_code,\n                    )\n                elif status_code\
+    \ >= 500:\n                    api_error = ApiError(\n                       \
+    \ \"Server error from the API. Retry shortly; the service may be degraded.\",\n\
+    \                        statusCode=status_code,\n                    )\n    \
+    \            else:\n                    api_error = ApiError(str(e), statusCode=status_code)\n\
+    \n                if attempt >= self.max_retries or status_code < 500 and status_code\
+    \ != 429:\n                    raise api_error from e\n                await self._sleep_before_retry(attempt)\n\
+    \            except Exception as e:\n                raise ZaiError(f\"Unexpected\
+    \ error: {e}\") from e\n\n    def _convert_sse_event_to_chunk(self, event: anthropic.types.RawMessageStreamEvent)\
+    \ -> Chunk | None:\n        \"\"\"Convert Anthropic SSE event to our Chunk type.\n\
+    \n        Args:\n            event: Raw SSE event from Anthropic SDK\n\n     \
+    \   Returns:\n            Chunk object or None if event type not handled\n   \
+    \     \"\"\"\n        event_type = event.type\n\n        if event_type == \"message_start\"\
+    :\n            return MessageStart(\n                id=event.message.id,\n  \
+    \              model=event.message.model,\n            )\n\n        elif event_type\
+    \ == \"content_block_start\":\n            content_block = event.content_block\n\
+    \            if content_block.type == \"text\":\n                return ContentBlockStart(\n\
+    \                    type=\"text\",\n                    index=event.index,\n\
+    \                )\n            elif content_block.type == \"tool_use\":\n   \
+    \             return ContentBlockStart(\n                    type=\"tool_use\"\
+    ,\n                    index=event.index,\n                    id=content_block.id,\n\
+    \                    name=content_block.name,\n                )\n\n        elif\
+    \ event_type == \"content_block_delta\":\n            delta = event.delta\n  \
+    \          if delta.type == \"text_delta\":\n                return ContentBlockDelta(\n\
+    \                    type=\"text_delta\",\n                    index=event.index,\n\
+    \                    text=delta.text,\n                )\n            elif delta.type\
+    \ == \"input_json_delta\":\n                return ContentBlockDelta(\n      \
+    \              type=\"input_json_delta\",\n                    index=event.index,\n\
+    \                    partial_json=delta.partial_json,\n                )\n\n \
+    \       elif event_type == \"content_block_stop\":\n            return ContentBlockStop(index=event.index)\n\
+    \n        elif event_type == \"message_stop\":\n            return MessageStop(stop_reason=event.message.stop_reason)\n\
+    \n        # Return None for unhandled event types\n        return None\n\n   \
+    \ async def _response_to_chunks(self, response: anthropic.types.Message) -> AsyncIterator[Chunk]:\n\
+    \        \"\"\"Convert non-streaming response to chunk stream.\n\n        Args:\n\
+    \            response: Complete response from messages.create()\n\n        Yields:\n\
+    \            Chunk objects representing the response\n        \"\"\"\n       \
+    \ # Yield message start\n        yield MessageStart(id=response.id, model=response.model)\n\
+    \n        # Yield content blocks\n        for index, block in enumerate(response.content):\n\
+    \            if block.type == \"text\":\n                yield ContentBlockStart(type=\"\
+    text\", index=index)\n                yield ContentBlockDelta(type=\"text_delta\"\
+    , index=index, text=block.text)\n                yield ContentBlockStop(index=index)\n\
+    \n            elif block.type == \"tool_use\":\n                yield ContentBlockStart(\n\
+    \                    type=\"tool_use\",\n                    index=index,\n  \
+    \                  id=block.id,\n                    name=block.name,\n      \
+    \          )\n                # Yield the input JSON as a single delta\n     \
+    \           input_json = json.dumps(block.input)\n                yield ContentBlockDelta(\n\
+    \                    type=\"input_json_delta\",\n                    index=index,\n\
+    \                    partial_json=input_json,\n                )\n           \
+    \     yield ContentBlockStop(index=index)\n\n        # Yield message stop\n  \
+    \      yield MessageStop(stop_reason=response.stop_reason)\n\n    async def _sleep_before_retry(self,\
+    \ attempt: int) -> None:\n        \"\"\"Sleep using exponential backoff before\
+    \ retrying.\"\"\"\n        await asyncio.sleep(self.base_retry_delay * (2 ** attempt))\n\
+    \n    async def extract_tool_calls(\n        self,\n        chunks: list[Chunk],\n\
+    \    ) -> list[dict]:\n        \"\"\"Extract tool calls from accumulated stream\
+    \ chunks.\n\n        This method processes a list of chunks and extracts complete\n\
+    \        tool_call objects by accumulating partial_json deltas.\n\n        Args:\n\
+    \            chunks: List of chunks from a stream\n\n        Returns:\n      \
+    \      List of tool_call dicts with id, name, and input keys\n\n        Example:\n\
+    \            >>> chunks = []\n            >>> async for chunk in client.chat_completion(messages,\
+    \ tools=tools):\n            ...     chunks.append(chunk)\n            >>> tool_calls\
+    \ = await client.extract_tool_calls(chunks)\n        \"\"\"\n        tool_calls:\
+    \ list[dict] = []\n        current_tool: dict[str, Any] | None = None\n      \
+    \  accumulated_json: list[str] = []\n\n        for chunk in chunks:\n        \
+    \    if isinstance(chunk, ContentBlockStart) and chunk.type == \"tool_use\":\n\
+    \                # Start of a new tool call\n                current_tool = {\n\
+    \                    \"id\": chunk.id,\n                    \"name\": chunk.name,\n\
+    \                    \"input\": {},\n                }\n                accumulated_json\
+    \ = []\n\n            elif isinstance(chunk, ContentBlockDelta) and chunk.type\
+    \ == \"input_json_delta\":\n                # Accumulate partial JSON\n      \
+    \          if chunk.partial_json:\n                    accumulated_json.append(chunk.partial_json)\n\
+    \n            elif isinstance(chunk, ContentBlockStop) and current_tool is not\
+    \ None:\n                # End of current tool call - parse accumulated JSON\n\
+    \                if accumulated_json:\n                    try:\n            \
+    \            json_str = \"\".join(accumulated_json)\n                        current_tool[\"\
+    input\"] = json.loads(json_str)\n                    except json.JSONDecodeError:\n\
+    \                        # If JSON is incomplete, keep as string\n           \
+    \             current_tool[\"input\"] = {\"raw\": \"\".join(accumulated_json)}\n\
+    \n                tool_calls.append(current_tool)\n                current_tool\
+    \ = None\n                accumulated_json = []\n\n        return tool_calls\n\
+    \n    async def simple_chat(\n        self,\n        message: str,\n        system_prompt:\
+    \ str | None = None,\n    ) -> str:\n        \"\"\"Simple chat without streaming\
+    \ or tool calling.\n\n"
+  error: null
+  metadata:
+    exit_code: 0
+- kind: message
+  engine: codex
+  sequence: 9
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: assistant
+  content: "The task is groomable: scope is already clear, and the remaining blocker\
+    \ is a single acceptance-criteria mismatch rather than a broad redesign. I\u2019\
+    m writing the planner handoff now with the exact retry-policy fix, test expectations,\
+    \ and sequencing for the next implementation pass."
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: tool_result
+  engine: codex
+  sequence: 10
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: 'report failed: no active task and --task-id not provided
+
+    '
+  error: null
+  metadata:
+    exit_code: 1
+- kind: message
+  engine: codex
+  sequence: 11
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: assistant
+  content: "`litehive report` rejected the first submission because the workspace\
+    \ has no active task set in `.litehive/state.yaml`. I\u2019m resubmitting with\
+    \ the explicit task id so the grooming result is recorded against `T-0002`."
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: tool_result
+  engine: codex
+  sequence: 12
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: 'task: T-0002
+
+    step: grooming
+
+    verdict: pass
+
+    role: planner
+
+    '
+  error: null
+  metadata:
+    exit_code: 0
+- kind: message
+  engine: codex
+  sequence: 13
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: assistant
+  content: 'STAGE_RESULT:
+
+    {"verdict":"pass","summary":"Grooming PASS: the task is well-scoped, and the remaining
+    blocker is a narrow retry-policy mismatch in ChatClient (`max_retries = 2` vs
+    acceptance criterion max 3 retries) with a clear implementation and verification
+    plan.","files_changed":[],"tests":{"added":0,"passing":0},"warnings":["No new
+    tests were run in grooming; this pass relied on the recorded QA/reviewer reproduction
+    plus direct inspection of `.litehive/tasks/T-0002-comprehensive-error-handling-and-edge-cases/task.yaml`
+    and `goz/agent/chat_client.py`.","`litehive report` required `--task-id T-0002`
+    because `.litehive/state.yaml` currently has no active task set."],"follow_up_tasks":[],"acceptance_criteria":[{"criterion":"Network
+    errors: connection failures, timeouts with retry","status":"partially_met","evidence":"Prior
+    implementation/test evidence shows retry behavior exists, but current ChatClient
+    retry count is still short of the accepted target."},{"criterion":"API errors:
+    401 auth, 429 rate limit, 500 server errors","status":"partially_met","evidence":"401/auth
+    fast-fail behavior is already accepted; the remaining gap is retry-count alignment
+    for retryable 429/5xx handling."},{"criterion":"Tool errors: input validation,
+    file not found, permission denied","status":"met","evidence":"Previously accepted;
+    no new grooming concerns found."},{"criterion":"Automatic retry with exponential
+    backoff (max 3 retries)","status":"not_met","evidence":"`goz/agent/chat_client.py`
+    still sets `self.max_retries = 2`, yielding 3 total attempts instead of the target
+    accepted by QA/reviewer."},{"criterion":"User-friendly error messages with actionable
+    suggestions","status":"met","evidence":"Previously accepted; no new grooming concerns
+    found."},{"criterion":"Context preservation after errors","status":"met","evidence":"Previously
+    accepted; no new grooming concerns found."},{"criterion":"Graceful shutdown with
+    unsaved changes prompt","status":"met","evidence":"Previously accepted; no new
+    grooming concerns found."}]}
+
+    FOLLOW_UP_TASKS:
+
+    []'
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata: {}
+- kind: usage
+  engine: codex
+  sequence: 14
+  timestamp: '2026-04-04T18:53:08+00:00'
+  role: null
+  content: ''
+  tool_name: null
+  tool_input: null
+  tool_output: null
+  error: null
+  metadata:
+    input_tokens: 165775
+    output_tokens: 2930
+engine: codex
+task_id: T-0002
+subagent_id: SA-0002
+started_at: null
+completed_at: null
+event_counts:
+  message: 5
+  tool_result: 9
+  usage: 1

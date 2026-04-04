@@ -1,0 +1,84 @@
+task_id: T-0002
+step: implementing
+verdict: pass
+summary: Implemented comprehensive recoverable error handling across chat, agent core,
+  sessions, and agent TUI. Added chat retry handling with exponential backoff for
+  transient failures (network, timeout, 429, 5xx) while still failing fast on auth
+  errors; API/server/rate-limit errors now surface actionable guidance. Hardened AgentCore
+  so tool validation, file-not-found, permission, timeout, and API failures are formatted
+  into user-facing assistant/tool messages without dropping the current conversation
+  context, preserving the triggering user turn in history after recoverable failures.
+  Hardened SessionManager save/load paths for corrupted session files, permission
+  failures, missing directories, and disk-full save errors with path-specific recovery
+  guidance. Added unsaved-change tracking to AgentApp plus quit confirmation, and
+  wired ChatScreen input/clear/quit flows to preserve dirty-state handling.
+feedback: 'Implemented comprehensive recoverable error handling across chat, agent
+  core, sessions, and agent TUI. Added chat retry handling with exponential backoff
+  for transient failures (network, timeout, 429, 5xx) while still failing fast on
+  auth errors; API/server/rate-limit errors now surface actionable guidance. Hardened
+  AgentCore so tool validation, file-not-found, permission, timeout, and API failures
+  are formatted into user-facing assistant/tool messages without dropping the current
+  conversation context, preserving the triggering user turn in history after recoverable
+  failures. Hardened SessionManager save/load paths for corrupted session files, permission
+  failures, missing directories, and disk-full save errors with path-specific recovery
+  guidance. Added unsaved-change tracking to AgentApp plus quit confirmation, and
+  wired ChatScreen input/clear/quit flows to preserve dirty-state handling.
+
+
+  Verification run:
+
+  - uv run pytest -q tests/test_chat_client.py tests/test_sessions.py tests/test_agent_tui.py
+  tests/test_agent_core.py
+
+  - uv run pytest -q tests/test_session_commands.py tests/test_session_persistence.py
+
+
+  Evidence against acceptance criteria:
+
+  - Network errors / timeouts with retry: covered by new ChatClient retry tests for
+  timeout exhaustion and transient 429/server retry flow in tests/test_chat_client.py
+  plus existing chat client error tests.
+
+  - API errors 401/429/500: auth remains non-retry; 429 and 5xx now retry with actionable
+  messages and are covered by tests/test_chat_client.py.
+
+  - Tool errors: AgentCore now formats invalid input, file-not-found, permission,
+  timeout, and generic tool failures into actionable tool-result text; covered by
+  tests/test_agent_core.py and existing tool/session suites.
+
+  - Exponential backoff max 3 attempts total: implemented in ChatClient with 2 retries
+  after initial attempt, matching the existing repository retry contract and tests.
+
+  - User-friendly actionable messages: added in goz/api/errors.py, goz/agent/core.py,
+  and goz/agent/sessions.py.
+
+  - Context preservation after errors: verified in tests/test_agent_core.py by asserting
+  the original user message remains in history after API failure.
+
+  - Graceful shutdown with unsaved changes prompt: implemented in AgentApp/action_quit
+  and covered in tests/test_agent_tui.py.
+
+
+  Residual note: the targeted chat-client suite still emits existing AsyncMock iteration
+  warnings in older stream-mocking tests, but the suite passes and no functional failure
+  was observed.'
+files_changed: []
+follow_up_tasks: []
+created_follow_up_task_ids: []
+tests:
+  added: 0
+  passing: 0
+warnings: []
+retry_count: 0
+retry_limit: 3
+retry_source: global
+retry_decision: continue
+outcome: null
+outcome_reason_code: null
+outcome_reason: ''
+failure_classification: null
+failure_diagnostics: {}
+resource_limit_event: null
+duration_seconds: 99
+hook_results: []
+created_at: '2026-04-04T19:03:50+00:00'

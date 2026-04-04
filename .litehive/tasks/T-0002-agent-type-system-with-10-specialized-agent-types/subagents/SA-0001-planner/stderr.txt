@@ -1,0 +1,4 @@
+Reading additional input from stdin...
+2026-04-04T18:24:30.656369Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/bash -lc "rg -n \"agent_type|/agent|set_agent_type|current_agent_type|general_purpose|reviewer|specialized\" tests goz | sed -n '1,240p'"`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+2026-04-04T18:24:58.829986Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/bash -lc "sed -n '340,420p' goz/agent/chat_client.py"`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+2026-04-04T18:25:05.948365Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/bash -lc "sed -n '120,190p' goz/agent/chat_client.py"`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }

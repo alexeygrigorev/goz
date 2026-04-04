@@ -1,0 +1,127 @@
+task_id: T-0002
+step: grooming
+verdict: pass
+summary: 'Grooming PASS for requested task "T-0005 Comprehensive error handling and
+  edge cases". The Litehive workspace did not contain a T-0005 task record, so I created
+  the missing local task record as T-0002 with the provided goal and acceptance criteria
+  before reporting. Repo inspection shows partial lower-layer coverage already exists:
+  API retries/backoff are implemented in goz/api/client.py with 3 total attempts and
+  exponential backoff; session persistence already preserves history and can load/list/delete;
+  chat history already compresses older context to preserve continuity. The main missing
+  work is orchestration and UX in the agent path: AgentCore currently collapses all
+  API/tool failures into generic assistant text without typed recovery or user-facing
+  retry state; ChatScreen uses a plain textual Input rather than the custom ChatInput
+  expected by tests and has no structured error notification/retry path; AgentApp
+  quits immediately and does not prompt on unsaved changes; SessionManager only handles
+  missing/corrupt files and not permission/disk-full cases with product-level messaging.'
+feedback: 'Grooming PASS for requested task "T-0005 Comprehensive error handling and
+  edge cases". The Litehive workspace did not contain a T-0005 task record, so I created
+  the missing local task record as T-0002 with the provided goal and acceptance criteria
+  before reporting. Repo inspection shows partial lower-layer coverage already exists:
+  API retries/backoff are implemented in goz/api/client.py with 3 total attempts and
+  exponential backoff; session persistence already preserves history and can load/list/delete;
+  chat history already compresses older context to preserve continuity. The main missing
+  work is orchestration and UX in the agent path: AgentCore currently collapses all
+  API/tool failures into generic assistant text without typed recovery or user-facing
+  retry state; ChatScreen uses a plain textual Input rather than the custom ChatInput
+  expected by tests and has no structured error notification/retry path; AgentApp
+  quits immediately and does not prompt on unsaved changes; SessionManager only handles
+  missing/corrupt files and not permission/disk-full cases with product-level messaging.
+
+
+  What I verified:
+
+  - Read tracker/spec and relevant implementation paths: goz/api/client.py, goz/api/errors.py,
+  goz/agent/core.py, goz/agent/history.py, goz/agent/sessions.py, goz/agent/tui/app.py,
+  goz/agent/tui/screens/chat.py, goz/agent/tools/base.py, goz/agent/tools/file_tools.py,
+  goz/agent/tools/bash_tool.py.
+
+  - Ran focused baseline tests: uv run pytest -q tests/test_e2e_api_client.py tests/test_session_persistence.py
+  tests/test_tui_integration.py tests/test_chat_client.py
+
+  - Result: 120 passed, 15 failed. The failures are pre-existing TUI mismatches around
+  chat input/session stubs, not new changes from this task.
+
+
+  Implementation plan for next stage:
+
+  1. Introduce a centralized agent/TUI error model for recoverable vs non-recoverable
+  failures, with typed mapping for network/API/tool/session/UI cases and actionable
+  messages.
+
+  2. Add retry orchestration in the interactive agent path with exponential backoff
+  and max 3 retries for retryable network/429/selected 5xx failures, while preserving
+  conversation/session state across retries.
+
+  3. Tighten API error classification so 401 fails fast with auth guidance, 429 exposes
+  rate-limit guidance and retry delay messaging, and 500-class errors degrade gracefully
+  after retries.
+
+  4. Normalize tool error surfaces so ToolInputError includes field detail, file/path
+  errors include the path and operation, permission errors are surfaced explicitly,
+  and tool timeouts remain recoverable from the UI.
+
+  5. Expand SessionManager and session load/save call sites to distinguish corrupted,
+  missing, permission, and storage-write failures without crashing, and preserve the
+  current session context when recovery is possible.
+
+  6. Update the agent TUI to use the intended chat input widget, ignore empty/whitespace-only
+  submissions, keep long/unicode input intact, show visible dismissible error notifications,
+  and add graceful quit flow with unsaved-changes confirmation.
+
+  7. Add focused tests first/tight for retry behavior, session recovery, UI notifications,
+  empty input, quit-with-unsaved-changes, and context preservation after failures.
+
+
+  Refined acceptance criteria for implementation:
+
+  - Retry policy should mean 3 total attempts maximum (initial attempt plus up to
+  2 retries) unless product explicitly wants 3 retries after the first call.
+
+  - Automatic retry applies only to retryable network failures, timeouts, 429, and
+  selected transient 5xx responses; 401 and tool validation/file errors should fail
+  fast with guidance.
+
+  - Context preservation means no loss of chat history/session metadata after recoverable
+  errors and after retry exhaustion.
+
+  - Graceful shutdown means prompting only when there are unsaved changes or unsaved
+  session state.
+
+
+  PM sizing:
+
+  - PM_COMPLEXITY: complex
+
+  - PLANNED_EFFORT: l
+
+
+  Risks and notes:
+
+  - There is baseline TUI debt before starting this task: current tests expect ChatInput
+  but ChatScreen mounts textual.widgets.Input, and AgentApp.load_session currently
+  raises FileNotFoundError rather than behaving like the older stub tests expected.
+
+  - The current API client already has retry/backoff at the HTTP wrapper layer. The
+  new work should avoid double-retrying in a way that multiplies wait time unexpectedly;
+  central retry ownership should be explicit.'
+files_changed: []
+follow_up_tasks: []
+created_follow_up_task_ids: []
+tests:
+  added: 0
+  passing: 0
+warnings: []
+retry_count: 0
+retry_limit: 3
+retry_source: global
+retry_decision: continue
+outcome: null
+outcome_reason_code: null
+outcome_reason: ''
+failure_classification: null
+failure_diagnostics: {}
+resource_limit_event: null
+duration_seconds: 77
+hook_results: []
+created_at: '2026-04-04T18:53:08+00:00'

@@ -1,0 +1,72 @@
+id: T-0006
+slug: register-and-activate-t-0002-in-litehive
+title: Register and activate T-0002 in Litehive
+depends_on: []
+task_type: process
+engine: null
+model: null
+mode: tasks
+status: done
+pipeline_status: done
+priority: medium
+pm_complexity: null
+planned_effort: null
+created_at: '2026-04-04T18:25:53+00:00'
+updated_at: '2026-04-04T18:50:30+00:00'
+goal: Create the missing Litehive task record for T-0002 and make it the active grooming
+  task in this workspace.
+acceptance_criteria:
+- '`litehive status` shows `active_task_id: T-0002` or the workspace is otherwise
+  explicitly routed to this task.'
+- A `.litehive/tasks/...` record exists for T-0002 with goal, acceptance criteria,
+  PM sizing, and stage metadata.
+- '`litehive report --task-id T-0002 ...` succeeds from this workspace.'
+constraints: []
+plan: []
+human_checkpoints: []
+subagents:
+- id: SA-0001
+  role: planner
+  engine: codex
+  status: completed
+  path: subagents/SA-0001-planner
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0002
+  role: swe
+  engine: codex
+  status: completed
+  path: subagents/SA-0002-swe
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0003
+  role: qa
+  engine: codex
+  status: completed
+  path: subagents/SA-0003-qa
+  sandboxed: false
+  sandbox_summary: host
+- id: SA-0004
+  role: reviewer
+  engine: codex
+  status: completed
+  path: subagents/SA-0004-reviewer
+  sandboxed: false
+  sandbox_summary: host
+git:
+  auto_commit: true
+  commit_message: 'litehive: complete T-0006 register-and-activate-t-0002-in-litehive'
+  commit_sha: 68faaafa6fdc9751d6369e92a2391be47765fe04
+  checkpoint_base_sha: null
+  checkpoint_attempts: 0
+  rolled_back_checkpoint_attempt: null
+  worktree_path: null
+retry_policy:
+  max_retries: null
+created_from:
+  task_id: T-0002
+  stage: grooming
+  rationale: The process contract says tasks under `.litehive/` are the source of
+    truth; this task cannot cleanly pass grooming or accept later stage reports until
+    a real task record exists and is active.
+  blocking: true

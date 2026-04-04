@@ -1,0 +1,43 @@
+id: T-0007
+slug: add-coding-agent-tools-to-goz-file-read-write-bash-execution-and-grep-glob-search
+title: 'Add coding agent tools to goz: file read/write, bash execution, and grep/glob
+  search'
+depends_on: []
+task_type: null
+engine: null
+model: null
+mode: implementation
+status: done
+pipeline_status: done
+priority: medium
+pm_complexity: null
+planned_effort: null
+created_at: '2026-04-04T20:27:16+00:00'
+updated_at: '2026-04-04T20:52:50+00:00'
+goal: goz needs to work as a litehive engine. It must be able to read files, write/edit
+  files, run bash commands, and search code. These tools should work through the existing
+  MCP tool infrastructure and be available during goz run sessions.
+acceptance_criteria:
+- goz run can read files in the working directory
+- goz run can write and edit files
+- goz run can execute bash commands and capture output
+- goz run can search files by name (glob) and content (grep)
+- tools are available automatically during goz run without extra flags
+- goz run produces a valid STAGE_RESULT verdict at the end
+- 'goz run works as a litehive engine: passes a simple implementation task end-to-end'
+constraints: []
+plan: []
+human_checkpoints: []
+subagents: []
+git:
+  auto_commit: true
+  commit_message: 'litehive: complete T-0007 add-coding-agent-tools-to-goz-file-read-write-bash-execution-and-grep-glob-search'
+  commit_sha: null
+  checkpoint_base_sha: null
+  checkpoint_attempts: 0
+  rolled_back_checkpoint_attempt: null
+  worktree_path: null
+retry_policy:
+  max_retries: null
+created_from: null
+upstream_origin: null
