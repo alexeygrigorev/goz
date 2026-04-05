@@ -84,14 +84,14 @@ class BashTool(BaseTool):
 
     # Destructive command patterns
     DESTRUCTIVE_PATTERNS = [
-        r"rm\s+-rf\s+/",          # rm -rf /
-        r"rm\s+-rf?\s+\*",        # rm -rf * or rm -f *
-        r"rm\s+-r\s+",            # rm -r (with path)
-        r"rm\s+-rf\s+",           # rm -rf (with path)
-        r"mv\s+.*\s+/",           # mv to root
-        r"dd\s+if=",              # dd command
-        r"format\s+",             # Windows format
-        r"del\s+",                # Windows delete
+        r"^\s*rm\s+-rf\s+/",      # rm -rf /
+        r"^\s*rm\s+-rf?\s+\*",    # rm -rf * or rm -f *
+        r"^\s*rm\s+-r\s+/",       # rm -r /path
+        r"^\s*rm\s+-rf\s+",       # rm -rf (with path)
+        r"^\s*mv\s+.*\s+/$",      # mv to root
+        r"^\s*dd\s+if=",          # dd command
+        r"^\s*format\s+[a-z]:",   # Windows format (e.g. format C:)
+        r"^\s*del\s+/[sqf]",      # Windows del with flags (e.g. del /s /q)
     ]
 
     def _resolve_cwd(self, cwd: str | None) -> str:
