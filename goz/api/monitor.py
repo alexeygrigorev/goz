@@ -80,16 +80,23 @@ class MonitorClient:
         else:
             inner = {}
 
-        limit = inner.get("limit", inner.get("total", 0))
-        used = inner.get("used", inner.get("consumed", 0))
-        remaining = inner.get("remaining", max(0, limit - used))
-        window = inner.get("window", inner.get("period", "5h"))
+        # Z.AI returns {"data": {"limits": [...], "level": "max"}}
+        # Each limit has: type, usage (total allowed), currentValue (used), remaining
+        limits = inner.get("limits", [])
+        time_limit = next((l for l in limits if l.get("type") == "TIME_LIMIT"), {})
+
+        limit = time_limit.get("usage", inner.get("limit", inner.get("total", 0)))
+        used = time_limit.get("currentValue", inner.get("used", inner.get("consumed", 0)))
+        remaining = time_limit.get("remaining", max(0, limit - used))
+        level = inner.get("level", "")
+        unit = time_limit.get("unit", 5)
+        window = f"{unit}h" if unit else "5h"
 
         return QuotaInfo(
             limit=limit,
             remaining=remaining,
             used=used,
-            window_label=str(window),
+            window_label=f"{window} ({level})" if level else window,
             raw=data,
         )
 
@@ -101,6 +108,9 @@ class MonitorClient:
         async with httpx.AsyncClient(timeout=self.config.timeout) as client:
             resp = await client.get(url, headers=self._headers(), params=params)
             resp.raise_for_status()
+            body = resp.text.strip()
+            if not body:
+                return ModelUsageReport(period_days=days, entries=[], raw={})
             data = resp.json()
 
         entries: list[ModelUsageEntry] = []
