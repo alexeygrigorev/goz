@@ -342,12 +342,29 @@ class TestMonitorClient:
         client = MonitorClient(config=config)
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
+            "code": 200,
             "data": {
-                "limit": 500000,
-                "used": 200000,
-                "remaining": 300000,
-                "window": "5h",
-            }
+                "limits": [
+                    {
+                        "type": "TIME_LIMIT",
+                        "unit": 5,
+                        "usage": 4000,
+                        "currentValue": 10,
+                        "remaining": 3990,
+                        "percentage": 1,
+                        "nextResetTime": 1777298698998,
+                        "usageDetails": [{"modelCode": "search-prime", "usage": 10}],
+                    },
+                    {
+                        "type": "TOKENS_LIMIT",
+                        "unit": 3,
+                        "percentage": 3,
+                        "nextResetTime": 1775396941330,
+                    },
+                ],
+                "level": "max",
+            },
+            "success": True,
         }
         mock_resp.raise_for_status = MagicMock()
 
@@ -360,10 +377,13 @@ class TestMonitorClient:
 
             quota = await client.fetch_quota_limit()
 
-        assert quota.limit == 500000
-        assert quota.remaining == 300000
-        assert quota.used == 200000
-        assert quota.window_label == "5h"
+        assert quota.level == "max"
+        assert len(quota.limits) == 2
+        time_lim = quota.limits[0]
+        assert time_lim.type == "TIME_LIMIT"
+        assert time_lim.limit == 4000
+        assert time_lim.used == 10
+        assert time_lim.remaining == 3990
 
     @pytest.mark.asyncio
     async def test_fetch_model_usage(self, config):
@@ -406,12 +426,18 @@ class TestMonitorClient:
 class TestUsageCommand:
     @pytest.mark.asyncio
     async def test_cmd_usage_json_output(self, config, capsys):
-        from goz.api.monitor import QuotaInfo, ModelUsageReport, ModelUsageEntry
+        from goz.api.monitor import QuotaInfo, QuotaLimit, ModelUsageReport, ModelUsageEntry
         from goz.cli.usage import cmd_usage
 
         mock_monitor = MagicMock()
         mock_monitor.fetch_quota_limit = AsyncMock(
-            return_value=QuotaInfo(limit=500000, remaining=300000, used=200000, window_label="5h")
+            return_value=QuotaInfo(
+                level="max",
+                limits=[
+                    QuotaLimit(type="TIME_LIMIT", limit=4000, used=10, remaining=3990, percentage=1, window_hours=5, reset_at=None),
+                    QuotaLimit(type="TOKENS_LIMIT", limit=0, used=0, remaining=0, percentage=3, window_hours=3, reset_at=None),
+                ],
+            )
         )
         mock_monitor.fetch_model_usage = AsyncMock(
             side_effect=lambda days=7: ModelUsageReport(
@@ -437,7 +463,9 @@ class TestUsageCommand:
 
         captured = capsys.readouterr()
         data = json.loads(captured.out)
-        assert "quota" in data
-        assert data["quota"]["remaining"] == 300000
+        assert "level" in data
+        assert data["level"] == "max"
+        assert "limits" in data
+        assert len(data["limits"]) == 2
         assert "7_day" in data
         assert data["7_day"][0]["model"] == "glm-5-turbo"
