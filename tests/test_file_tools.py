@@ -147,7 +147,7 @@ class TestCreateFileTool:
     def test_create_file_tool_has_name(self):
         """Test CreateFileTool has correct name."""
         tool = CreateFileTool()
-        assert tool.name == "create_file"
+        assert tool.name == "write_file"
 
     def test_create_file_tool_has_description(self):
         """Test CreateFileTool has description."""
@@ -186,8 +186,8 @@ class TestCreateFileTool:
             assert (Path(tmpdir) / "subdir" / "nested" / "file.py").read_text() == "content"
 
     @pytest.mark.asyncio
-    async def test_create_file_fails_if_exists(self):
-        """Test create_file fails if file already exists."""
+    async def test_write_file_overwrites_existing(self):
+        """Test write_file overwrites existing file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             existing_file = Path(tmpdir) / "existing.py"
             existing_file.write_text("old content")
@@ -195,9 +195,8 @@ class TestCreateFileTool:
             tool = CreateFileTool(working_dir=tmpdir)
             result = await tool.execute(file_path="existing.py", content="new content")
 
-            assert "already exists" in result.lower() or "error" in result.lower()
-            # File should not be modified
-            assert existing_file.read_text() == "old content"
+            assert "updated" in result.lower()
+            assert existing_file.read_text() == "new content"
 
     @pytest.mark.asyncio
     async def test_create_file_handles_unicode_content(self):

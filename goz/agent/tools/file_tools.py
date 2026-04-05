@@ -155,7 +155,7 @@ class ViewFileTool(BaseTool):
 
 
 class CreateFileTool(BaseTool):
-    """Tool for creating new files with content.
+    """Tool for creating or overwriting files with content.
 
     Attributes:
         name: Tool identifier
@@ -163,18 +163,18 @@ class CreateFileTool(BaseTool):
         input_schema: JSON Schema for input validation
     """
 
-    name = "create_file"
+    name = "write_file"
     description = (
-        "Create a new file with content. "
-        "Use this to create new source files, configs, etc. "
-        "If the file already exists, this will fail."
+        "Write content to a file, creating it if it doesn't exist or overwriting if it does. "
+        "Use this for creating new files or completely replacing file contents. "
+        "For targeted edits to existing files, prefer str_replace_editor instead."
     )
     input_schema = {
         "type": "object",
         "properties": {
             "file_path": {
                 "type": "string",
-                "description": "Path for the new file"
+                "description": "Path to write to (created if missing, overwritten if exists)"
             },
             "content": {
                 "type": "string",
@@ -185,38 +185,31 @@ class CreateFileTool(BaseTool):
     }
 
     async def execute(self, file_path: str, content: str) -> str:
-        """Create a new file.
+        """Write content to a file.
 
         Args:
-            file_path: Path for the new file
-            content: Content to write to the file
+            file_path: Path to write to
+            content: Content to write
 
         Returns:
-            Success message with file path
+            Success message with file path and whether it was created or updated
 
         Raises:
-            ToolExecutionError: If file already exists or creation fails
+            ToolExecutionError: If write fails
         """
-        # Resolve path
         full_path = self._resolve_path(file_path)
-
-        # Check if file already exists
-        if full_path.exists():
-            return f"Error: File already exists: {file_path}. Use str_replace_editor to modify."
+        existed = full_path.exists()
 
         try:
-            # Create parent directories if needed
             full_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Write content
             full_path.write_text(content, encoding="utf-8")
-
-            return f"Created: {file_path}"
+            action = "Updated" if existed else "Created"
+            return f"{action}: {file_path}"
 
         except PermissionError:
             raise ToolExecutionError(f"Permission denied: {file_path}")
         except OSError as e:
-            raise ToolExecutionError(f"Failed to create file: {e}")
+            raise ToolExecutionError(f"Failed to write file: {e}")
 
     def _resolve_path(self, file_path: str) -> Path:
         """Resolve file path relative to working directory.
