@@ -941,7 +941,7 @@ For command-specific help:
 
 Examples:
   goz vision analyze https://example.com/image.png
-  goz run --format json "Inspect this repo and report STAGE_RESULT."
+  goz run --format json "Inspect this repo and summarize the structure."
   goz vision ui-to-code screenshot.png
   goz search "python async await"
   goz read https://example.com/article

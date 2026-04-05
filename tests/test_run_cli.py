@@ -95,9 +95,6 @@ class TestRunPromptJsonl:
             "continuation": {"resume_session_id": events[-1]["part"]["session_id"]},
         }
         combined_text = "".join(event["part"]["text"] for event in events if event["type"] == "text")
-        assert "STAGE_RESULT:" in combined_text
-        assert '"verdict":"pass"' in combined_text
-        assert "STAGE_RESULT:" in chat_client.calls[0]["messages"][0]["content"]
         assert chat_client.calls[0]["tools"]
 
     @pytest.mark.asyncio

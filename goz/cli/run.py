@@ -45,14 +45,6 @@ from goz.config import Config, load_config
 
 MAX_ITERATIONS: int | None = None  # No limit by default
 DEFAULT_AGENT_TYPE = "engine"
-STAGE_RESULT_INSTRUCTION = """
-
-End your final answer with:
-STAGE_RESULT:
-{"verdict":"pass","summary":"one-line summary","files_changed":["path/to/file"],"tests":{"added":0,"passing":0},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}
-
-Return valid JSON after STAGE_RESULT:. Include a verdict.
-""".strip()
 
 DEFAULT_SYSTEM_PROMPT = """\
 You are an action-oriented coding agent. You have access to tools that let you read files, write files, run shell commands, search code, and more.
@@ -187,7 +179,7 @@ def build_default_tool_registry(config: Config, working_dir: str) -> ToolRegistr
 
 
 def _build_prompt(user_prompt: str) -> str:
-    return f"{user_prompt.rstrip()}\n\n{STAGE_RESULT_INSTRUCTION}"
+    return user_prompt.rstrip()
 
 
 def _parse_tool_calls(chunks: list[Chunk]) -> list[dict[str, Any]]:
@@ -414,7 +406,7 @@ Options:
   --no-system-prompt       Disable the default system prompt entirely
 
 Examples:
-  goz run --format json "Summarize this repo and report STAGE_RESULT."
+  goz run --format json "Summarize this repo."
   goz run --dir /tmp/project --model glm-5 "Run pytest and explain failures."
   goz run --resume-session abc123 "Continue with the next step."
   goz run --system-prompt 'You are a helpful assistant.' "Hello"
