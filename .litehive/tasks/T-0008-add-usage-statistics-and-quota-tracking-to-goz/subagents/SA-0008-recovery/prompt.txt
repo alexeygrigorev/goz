@@ -1,0 +1,184 @@
+Task: T-0008 Add usage statistics and quota tracking to goz
+Stage: implementing
+Stage owner: recovery
+Process profile: Python
+Task type: -
+
+Workspace context:
+# Litehive Workspace Context
+
+Process profile: Generic
+
+Describe this repository and how subagents should work in it.
+
+## Project
+- Purpose:
+- Main package/module locations:
+- Commands to know:
+
+## Process overlay
+- Source of truth: tasks and implementation state live under `.litehive/`.
+- Task source of truth: issues or task records define scope; prompts and transcripts are supporting evidence.
+- Orchestrator model: the local runner is the manager and owns stage routing.
+- Routing model: routing stays deterministic and local; subagents execute assigned stages but do not self-route.
+- Shared stages: grooming -> implementing -> testing -> accepting -> commit_to_git.
+- Role model: orchestrator-as-manager: `planner` owns grooming, `reviewer` owns acceptance, both are PM-style product roles, `swe` implements, and `qa` verifies.
+- TDD expectations: prefer test-first or test-tight changes and explain deviations.
+- Verification discipline: verification should be explicit, focused, and independent enough to catch regressions.
+- Acceptance flow: implementation must pass verification before acceptance.
+- Commit and recovery: successful tasks checkpoint to git; rollback and recover should remain deterministic.
+
+## Project overlay
+- General software project workflow with deterministic local orchestration.
+- Favor incremental, reviewable changes over broad refactors.
+- Keep implementation, verification, and acceptance evidence explicit.
+
+## Init scaffold
+- Scaffold `.litehive/context.md` from the generic base process template.
+- Layer the project profile summary, workspace overlay, and stage overlay onto that base.
+- Treat process profiles as overlays on the shared contract rather than separate workflows.
+- Keep the task/issue source of truth, verification commands, and recovery policy visible in the scaffold.
+
+## Prompt scaffold
+- Start from the shared process contract, then add repository context and task data.
+- Combine the generic base prompt with the selected project overlay instead of replacing the base.
+- Apply stage defaults first, then append any project-specific stage overlay for that step.
+- Keep stage prompts explicit about role, verification expectations, and final report format.
+
+## Stage prompt scaffolding
+
+### grooming
+Act as the planner: clarify the user problem, inspect the repo if needed, and produce a concrete execution plan.
+Focus on scope clarification, acceptance criteria quality, decomposition, follow-up tasks, and PM sizing.
+Do not make code changes in this stage.
+
+### implementing
+Implement the task in this repository.
+Keep changes tightly scoped and complete the work needed for the acceptance criteria.
+
+### testing
+Validate the implementation.
+Run focused checks or tests where possible and report failures precisely.
+Only make minimal fixes if absolutely necessary.
+
+### accepting
+Act as the reviewer: validate the end-user outcome against the acceptance criteria and decide whether it should be accepted or sent back.
+Be strict about regression detection, evidence quality, and final done versus not-done judgment.
+
+## Development rules
+- Keep changes scoped to the current task.
+- Prefer targeted tests over broad test suites.
+- Record assumptions clearly in the final report.
+
+## Tool usage
+- Use `uv run pytest -q` for the current smoke test suite.
+- Update litehive task artifacts instead of inventing external state stores.
+- If you add a new command or workflow, document it here for future runs.
+
+Shared process:
+- Orchestrator model: the local runner is the manager and owns stage routing.
+- Routing model: routing stays deterministic and local; subagents execute assigned stages but do not self-route.
+- Shared stages: grooming -> implementing -> testing -> accepting -> commit_to_git.
+- Role model: `planner` frames the task, `reviewer` performs final PM-style acceptance, `swe` edits code, and `qa` runs focused verification.
+- Source of truth: tasks and implementation state live under `.litehive/`.
+- Task source of truth: issues or task records define scope; prompts and transcripts are supporting evidence.
+- TDD expectations: add or update focused tests near the changed Python module before broad suites.
+- Verification discipline: prefer targeted `pytest` evidence close to the changed module before broader smoke coverage.
+- Acceptance flow: verify behavior with targeted `pytest` coverage and note any residual risk.
+- Commit and recovery: keep checkpoint commits deterministic and easy to recover.
+
+Project overlay:
+- Python package or application workflow with pytest-oriented verification.
+- Favor incremental, reviewable changes over broad refactors.
+- Keep implementation, verification, and acceptance evidence explicit.
+- Prefer focused `pytest` coverage for the changed modules.
+- Keep dependency and packaging changes explicit and minimal.
+
+Prompt scaffold:
+- Start from the shared process contract, then add repository context and task data.
+- Combine the generic base prompt with the selected project overlay instead of replacing the base.
+- Apply stage defaults first, then append any project-specific stage overlay for that step.
+- Keep stage prompts explicit about role, verification expectations, and final report format.
+
+Role focus:
+- You are the recovery agent responsible for diagnosing why this task stopped making progress and restoring a runnable path.
+- Inspect the latest failure context, reports, continuation handoff, and existing artifacts before changing code or task state.
+- Make the smallest effective fix needed so the task can resume the current stage and finish cleanly.
+- Preserve useful progress, avoid restarting discovery from scratch, and keep the task moving toward completion.
+- If the failure is caused by Litehive itself rather than the current project, file an upstream Litehive task with `litehive issue --upstream ...` so the bug or missing feature is tracked durably instead of only being logged locally.
+- When the workspace config defines `litehive_source_path`, use it for upstream issue filing and patch handoff without switching context away from the current project.
+
+Stage instructions:
+Implement the task in this repository.
+Keep changes tightly scoped and complete the work needed for the acceptance criteria.
+- Write or update focused tests alongside the code change when feasible.
+
+Goal:
+Track and display Z.AI token usage, costs, and quota limits. (1) Capture per-request usage from Anthropic SDK streaming responses (message_start.usage, message_delta.usage). (2) Call Z.AI monitor endpoints (api.z.ai/api/monitor/usage/quota/limit and model-usage) for quota dashboard. (3) Emit usage in JSONL step_finish events so litehive can track it. (4) Add a 'goz usage' CLI command showing current session tokens, 5-hour quota remaining, and 7/30-day aggregates.
+
+Acceptance criteria:
+- chat_client.py extracts usage.input_tokens and usage.output_tokens from streaming message_start/message_delta events
+- Per-turn token counts accumulated in session state
+- step_finish JSONL event includes tokens (input, output, cache_read, cache_write) and cost
+- goz usage command calls api.z.ai/api/monitor/usage/quota/limit and displays 5-hour quota remaining
+- goz usage command calls api.z.ai/api/monitor/usage/model-usage and shows 7-day and 30-day aggregates
+- goz run shows per-turn token usage in JSONL output compatible with litehive EngineUsageObservation
+- Quota/rate limit errors (Z.AI codes 1302/1305/1308/1310) are detected and reported clearly
+
+Continuation handoff:
+- Kind: restart
+- Reason: Stale runner detected while subagent `SA-0007` (swe/goz, pid 1324021 no longer alive) was still marked running in `implementing`.
+- Engine path: goz -> goz
+- Prior subagent: SA-0007 at `subagents/SA-0007-swe`
+- Prior summary: Interrupted run recovered after stale runner detection. Resume from `implementing`.
+- Prior snippet: {"type": "tool_use", "part": {"id": "call_87cf49c091964526b9e61985", "name": "bash", "input": {"command": "find . -type f -name \"*.py\" | head -50 && echo \"---\" && ls -la"}, "output": "BashResult(exit_code=0, stdout='./tests_integration/test_goz_run_tools.py\\n./goz/agent/usage.py\\n./goz/agent/history.py\\n./goz/agent/__init__.py\\n./goz/agent/tui/app.py\\n./goz/agent/tui/__init__.py\\n./goz/agent/tui/screens/chat.py\\n./goz/agent/tui/screens/__init__.py\\n./goz/agent/tui/screens/session.py\\n./goz/agent/tui/widgets/chat.py\\n./goz/agent/tui/widgets/markdown.py\\n./goz/agent/tui/widgets/__init__.py\\n./goz/agent/tui/widgets/diff.py\\n./goz/agent/quota.py\\n./goz/agent/chat_client.py\\n./goz/agent/tools/bash_tool.py\\n./goz/agent/tools/__init__.py\\n./goz/agent/tools/base.py\\n./goz/agent/tools/api_tools.py\\n./goz/agent/tools/search_tools.py\\n./goz/agent/tools/file_tools.py\\n./goz/agent/tools/registry.py\\n./goz/agent/core.py\\n./goz/agent/sessions.py\\n./goz/agent/stream_processor.py\\n./goz/agent/state_machine.py\\n./goz/__main__.py\\n./goz/__init__.py\\n./goz/tui/app.py\\n./goz/tui/__init__.py\\n./goz/tui/screens/__init__.py\\n./goz/tui/screens/read.py\\n./goz/tui/screens/result.py\\n./goz/tui/screens/doctor.py\\n./goz/tui/screens/vision.py\\n./goz/tui/screens/main.py\\n./goz/tui/screens/search.py\\n./goz/tui/widgets/loading.py\\n./goz/tui/widgets/thinking.py\\n./goz/tui/widgets/__init__.py\\n./goz/tui/widgets/errors.py\\n./goz/__version__.py\\n./goz/cli/usage.py\\n./goz/cli/__init__.py\\n./goz/cli/run.py\\n./goz/api/monitor.py\\n./goz/api/reader.py\\n./goz/api/__init__.py\\n./goz/api/client.py\\n./goz/api/image.py\\n---\\ntotal 308\\ndrwxrwxr-x 12 alexey alexey   4096 Apr  4 23:45 .\\ndrwxrwxr-x  5 alexey alexey   4096 Apr  4 23:28 ..\\ndrwxrwxr-x  3 alexey alexey   4096 Apr  4 23:28 .claude\\n-rw-rw-r--  1 alexey alexey   3410 Apr  4 23:28 CLAUDE.md\\ndrwxrwxr-x  3 alexey alexey   4096 Apr  4 23:28 docs\\n-rw-rw-r--  1 alexey alexey     98 Apr  4 23:28 .git\\ndrwxrwxr-x  3 alexey alexey   4096 Apr  4 23:28 .github\\n-rw-rw-r--  1 alexey alexey    271 Apr  4 23:28 .gitignore\\ndrwxrwxr-x  8 alexey alexey   4096 Apr  5 00:12 goz\\ndrwxrwxr-x  3 alexey alexey   4096 Apr  4 23:28 .litehive\\n-rw-rw-r--  1 alexey alexey    443 Apr  4 23:28 Makefile\\n-rw-rw-r--  1 alexey alexey   1200 Apr  4 23:28 pyproject.toml\\ndrwxrwxr-x  3 alexey alexey   4096 Apr  4 23:45 .pytest_cache\\n-rw-rw-r--  1 alexey alexey      5 Apr  4 23:28 .python-version\\n-rw-rw-r--  1 alexey alexey     28 Apr  4 23:28 README.md\\ndrwxrwxr-x  4 alexey alexey   4096 Apr  5 00:07 .ruff_cache\\ndrwxrwxr-x  3 alexey alexey   4096 Apr  5 00:12 tests\\ndrwxrwxr-x  2 alexey alexey   4096 Apr  4 23:28 tests_integration\\n-rw-rw-r--  1 alexey alexey 234911 Apr  4 23:28 uv.lock\\ndrwxrwxr-x  4 alexey alexey   4096 Apr  4 23:28 .venv\\n', stderr='', duration=0.00737452507019043)", "is_error": false}}
+- Handoff artifacts: `subagents/SA-0007-swe/session.yaml`, `subagents/SA-0007-swe/report.yaml`, `subagents/SA-0007-swe/transcript.md`
+- Continue from the prior stage context instead of restarting discovery from scratch.
+- Reuse the recorded artifacts and continuation identifiers when they help you preserve progress safely.
+
+Plan:
+- No plan defined.
+
+PM sizing:
+- Current PM complexity: moderate
+- Current planned effort: m
+
+Constraints:
+- Keep changes scoped to the task.
+
+Return exactly this structure:
+VERDICT: PASS|FAIL|REJECT|BLOCKED
+SUMMARY: one-line summary
+FILES_CHANGED:
+- path/to/file
+TESTS_ADDED: <integer>
+TESTS_PASSING: <integer>
+WARNINGS:
+- optional warning
+
+Preferred: emit a schema-validated JSON block instead of the text above.
+Place the JSON on the line(s) after `STAGE_RESULT:`.
+STAGE_RESULT:
+{"verdict":"pass","summary":"one-line summary","files_changed":["path/to/file"],"tests":{"added":0,"passing":0},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}
+The text format above is still accepted as a fallback.
+
+IMPORTANT: When you are done, you MUST submit your verdict by running:
+  litehive report --verdict <pass|fail|reject|blocked> --role recovery --step implementing --message "<your report>"
+
+Your --message is the PRIMARY way the next agent understands what happened.
+Do NOT rely on your raw transcript being read — write the report as if it is the only thing the next agent will see.
+
+Report requirements:
+- On PASS/ACCEPT: explain what you verified, what tests you ran, what evidence confirms the acceptance criteria are met.
+- On REJECT: you MUST include ALL of the following:
+  1. EXPECTED behavior: what should happen according to the acceptance criteria
+  2. OBSERVED behavior: what actually happens (exact error messages, test output, wrong values)
+  3. Steps to reproduce: the exact command or test that demonstrates the gap
+  4. Which acceptance criteria are not met and which ones are already satisfied
+- On FAIL: explain what went wrong and whether it is fixable or needs a different approach.
+- On BLOCKED: explain what dependency or resource is missing.
+
+A vague rejection like 'tests fail' or 'missing evidence' is useless and causes infinite loops.
+A good rejection looks like: 'Expected: `litehive engine gemini` switches the default engine and prints confirmation. Observed: command exits 0 but config.yaml still shows the old engine. Reproduce: run `litehive engine gemini` then `cat .litehive/config.yaml`. Criteria 1-3 are met, criterion 4 (persistence) is not.'
+
+The text-based VERDICT/SUMMARY format is accepted as fallback but litehive report is strongly preferred.

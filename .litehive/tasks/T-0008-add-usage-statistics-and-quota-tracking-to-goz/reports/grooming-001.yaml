@@ -1,0 +1,175 @@
+task_id: T-0008
+step: grooming
+verdict: blocked
+summary: Now
+feedback: 'Now
+
+  let
+
+  me
+
+  look
+
+  at
+
+  the
+
+  config
+
+  ,
+
+  errors
+
+  module
+
+  ,
+
+  and
+
+  existing
+
+  tests
+
+  :
+
+  Now
+
+  let
+
+  me
+
+  check
+
+  the
+
+  py
+
+  project
+
+  .tom
+
+  l
+
+  for
+
+  dependencies
+
+  and
+
+  look
+
+  at
+
+  the
+
+  Anth
+
+  ropic
+
+  SDK
+
+  ''s
+
+  usage
+
+  structure
+
+  :
+
+  Now
+
+  let
+
+  me
+
+  check
+
+  the
+
+  Anth
+
+  ropic
+
+  SDK
+
+  ''s
+
+  usage
+
+  event
+
+  structure
+
+  ,
+
+  specifically
+
+  `
+
+  message
+
+  _start
+
+  `
+
+  and
+
+  `
+
+  message
+
+  _delta
+
+  `:
+
+  Now
+
+  let
+
+  me
+
+  check
+
+  the
+
+  Anth
+
+  ropic
+
+  SDK
+
+  ''s
+
+  Usage
+
+  and
+
+  Message
+
+  Delta
+
+  Usage
+
+  types
+
+  :'
+files_changed: []
+follow_up_tasks: []
+created_follow_up_task_ids: []
+tests:
+  added: 0
+  passing: 0
+warnings: []
+retry_count: 0
+retry_limit: 3
+retry_source: global
+retry_decision: final
+outcome: blocked
+outcome_reason_code: verdict_blocked
+outcome_reason: Now
+failure_classification: null
+failure_diagnostics: {}
+resource_limit_event: null
+duration_seconds: 31
+hook_results: []
+created_at: '2026-04-04T21:28:54+00:00'

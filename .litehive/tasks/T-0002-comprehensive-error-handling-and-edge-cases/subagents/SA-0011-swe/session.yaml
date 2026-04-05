@@ -1,0 +1,30 @@
+id: SA-0011
+role: swe
+engine: codex
+status: completed
+sandboxed: false
+sandbox: host
+created_at: '2026-04-04T21:28:56+00:00'
+updated_at: '2026-04-04T21:30:31+00:00'
+pid: 1198973
+exit_code: 0
+interruption_reason: null
+resource_control:
+  enabled: false
+  backend: null
+  runtime: null
+  image: null
+  network_mode: null
+  workspace_mode: null
+  memory_mb: null
+  cpu_count: null
+  process_limit: null
+  environment: []
+  credential_inputs: []
+  propagated_mounts: []
+resource_limit_event: null
+continuation:
+  session_id: null
+  thread_id: 019d5a66-2d0d-7260-ae1e-664a30889f48
+  metadata: {}
+  updated_at: '2026-04-04T21:30:31+00:00'

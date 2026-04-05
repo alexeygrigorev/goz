@@ -1,0 +1,11 @@
+I’m picking up the rejected implementation and focusing on the retry-policy gap first. I’ll inspect the current `ChatClient` logic and the related focused tests, then patch the retry count and verify the acceptance path with targeted pytest runs.
+The rejection points at a narrow gap: retryable failures still stop one attempt early. I’ve confirmed the worktree already has local edits in `goz/agent/chat_client.py` and `tests/test_chat_client.py`, so I’m reading those carefully and will patch only the retry logic and its focused assertions.
+The local diff already contains the intended retry fix: `max_retries` is `3`, and the focused retry tests were updated to expect 4 total attempts with 3 backoff sleeps. I’m running the rejected repro path now to confirm the implementation actually matches the acceptance criteria in this worktree.
+The independent repro now matches the requirement exactly: `max_retries 3`, `stream_calls 4`, `sleep_calls 3`. I’m waiting on the full focused pytest batch to finish, then I’ll file the implementation report with the evidence the next stage needs.
+Focused verification is clean on the acceptance path: 112 targeted tests pass, and the retry reproduction now shows 4 total attempts for retryable 500s. I’m submitting the stage report now with the remaining warning about the existing `AsyncMock` stream-test warnings so the next stage has the right context.
+Updated the retry path to match the acceptance criteria: retryable network/API failures now allow an initial attempt plus up to 3 retries with exponential backoff. The relevant local changes are in [goz/agent/chat_client.py](/home/alexey/git/goz/.litehive/worktrees/T-0002-comprehensive-error-handling-and-edge-cases/goz/agent/chat_client.py) and [tests/test_chat_client.py](/home/alexey/git/goz/.litehive/worktrees/T-0002-comprehensive-error-handling-and-edge-cases/tests/test_chat_client.py).
+
+Verification passed with `uv run pytest -q tests/test_chat_client.py tests/test_agent_core.py tests/test_sessions.py tests/test_agent_tui.py` (`112 passed`). I also reran the rejection repro and confirmed `max_retries 3`, `stream_calls 4`, and `sleep_calls 3` for a retry-exhausted 500. I submitted the required Litehive implementing-stage report as `pass`.
+
+[stderr]
+Reading additional input from stdin...

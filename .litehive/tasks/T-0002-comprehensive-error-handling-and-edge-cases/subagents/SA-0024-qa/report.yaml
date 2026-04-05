@@ -1,0 +1,30 @@
+status: completed
+summary: "Testing the retry-policy gap from the prior rejection and validating the\
+  \ rest of the error-handling changes with focused pytest runs. I\u2019ll inspect\
+  \ the current implementation, reproduce the previous failure, and only patch if\
+  \ the testing stage finds a minimal fix is still necessary."
+files_changed: []
+tests:
+  added: 0
+  passing: 0
+warnings: []
+resource_control:
+  enabled: false
+  backend: null
+  runtime: null
+  image: null
+  network_mode: null
+  workspace_mode: null
+  memory_mb: null
+  cpu_count: null
+  process_limit: null
+  environment: []
+  credential_inputs: []
+  propagated_mounts: []
+interruption_reason: null
+resource_limit_event: null
+continuation:
+  session_id: null
+  thread_id: 019d5bcb-1757-7842-ac77-46a43a31fec0
+  metadata: {}
+  updated_at: '2026-04-05T04:00:10+00:00'

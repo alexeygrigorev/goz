@@ -1,0 +1,316 @@
+Task: T-0002 Comprehensive error handling and edge cases
+Stage: testing
+Stage owner: recovery
+Process profile: Generic
+Task type: bugfix
+
+Workspace context:
+# Litehive Workspace Context
+
+Process profile: Generic
+
+Describe this repository and how subagents should work in it.
+
+## Project
+- Purpose:
+- Main package/module locations:
+- Commands to know:
+
+## Process overlay
+- Source of truth: tasks and implementation state live under `.litehive/`.
+- Task source of truth: issues or task records define scope; prompts and transcripts are supporting evidence.
+- Orchestrator model: the local runner is the manager and owns stage routing.
+- Routing model: routing stays deterministic and local; subagents execute assigned stages but do not self-route.
+- Shared stages: grooming -> implementing -> testing -> accepting -> commit_to_git.
+- Role model: orchestrator-as-manager: `planner` owns grooming, `reviewer` owns acceptance, both are PM-style product roles, `swe` implements, and `qa` verifies.
+- TDD expectations: prefer test-first or test-tight changes and explain deviations.
+- Verification discipline: verification should be explicit, focused, and independent enough to catch regressions.
+- Acceptance flow: implementation must pass verification before acceptance.
+- Commit and recovery: successful tasks checkpoint to git; rollback and recover should remain deterministic.
+
+## Project overlay
+- General software project workflow with deterministic local orchestration.
+- Favor incremental, reviewable changes over broad refactors.
+- Keep implementation, verification, and acceptance evidence explicit.
+
+## Init scaffold
+- Scaffold `.litehive/context.md` from the generic base process template.
+- Layer the project profile summary, workspace overlay, and stage overlay onto that base.
+- Treat process profiles as overlays on the shared contract rather than separate workflows.
+- Keep the task/issue source of truth, verification commands, and recovery policy visible in the scaffold.
+
+## Prompt scaffold
+- Start from the shared process contract, then add repository context and task data.
+- Combine the generic base prompt with the selected project overlay instead of replacing the base.
+- Apply stage defaults first, then append any project-specific stage overlay for that step.
+- Keep stage prompts explicit about role, verification expectations, and final report format.
+
+## Stage prompt scaffolding
+
+### grooming
+Act as the planner: clarify the user problem, inspect the repo if needed, and produce a concrete execution plan.
+Focus on scope clarification, acceptance criteria quality, decomposition, follow-up tasks, and PM sizing.
+Do not make code changes in this stage.
+
+### implementing
+Implement the task in this repository.
+Keep changes tightly scoped and complete the work needed for the acceptance criteria.
+
+### testing
+Validate the implementation.
+Run focused checks or tests where possible and report failures precisely.
+Only make minimal fixes if absolutely necessary.
+
+### accepting
+Act as the reviewer: validate the end-user outcome against the acceptance criteria and decide whether it should be accepted or sent back.
+Be strict about regression detection, evidence quality, and final done versus not-done judgment.
+
+## Development rules
+- Keep changes scoped to the current task.
+- Prefer targeted tests over broad test suites.
+- Record assumptions clearly in the final report.
+
+## Tool usage
+- Use `uv run pytest -q` for the current smoke test suite.
+- Update litehive task artifacts instead of inventing external state stores.
+- If you add a new command or workflow, document it here for future runs.
+
+Shared process:
+- Orchestrator model: the local runner is the manager and owns stage routing.
+- Routing model: routing stays deterministic and local; subagents execute assigned stages but do not self-route.
+- Shared stages: grooming -> implementing -> testing -> accepting -> commit_to_git.
+- Role model: orchestrator-as-manager: `planner` owns grooming, `reviewer` owns acceptance, both are PM-style product roles, `swe` implements, and `qa` verifies.
+- Source of truth: tasks and implementation state live under `.litehive/`.
+- Task source of truth: issues or task records define scope; prompts and transcripts are supporting evidence.
+- TDD expectations: prefer test-first or test-tight changes and explain deviations.
+- Verification discipline: verification should be explicit, focused, and independent enough to catch regressions.
+- Acceptance flow: implementation must pass verification before acceptance.
+- Commit and recovery: successful tasks checkpoint to git; rollback and recover should remain deterministic.
+
+Project overlay:
+- General software project workflow with deterministic local orchestration.
+- Favor incremental, reviewable changes over broad refactors.
+- Keep implementation, verification, and acceptance evidence explicit.
+
+Prompt scaffold:
+- Start from the shared process contract, then add repository context and task data.
+- Combine the generic base prompt with the selected project overlay instead of replacing the base.
+- Apply stage defaults first, then append any project-specific stage overlay for that step.
+- Keep stage prompts explicit about role, verification expectations, and final report format.
+
+Role focus:
+- You are the recovery agent responsible for diagnosing why this task stopped making progress and restoring a runnable path.
+- Inspect the latest failure context, reports, continuation handoff, and existing artifacts before changing code or task state.
+- Make the smallest effective fix needed so the task can resume the current stage and finish cleanly.
+- Preserve useful progress, avoid restarting discovery from scratch, and keep the task moving toward completion.
+- If the failure is caused by Litehive itself rather than the current project, file an upstream Litehive task with `litehive issue --upstream ...` so the bug or missing feature is tracked durably instead of only being logged locally.
+- When the workspace config defines `litehive_source_path`, use it for upstream issue filing and patch handoff without switching context away from the current project.
+
+Stage instructions:
+Validate the implementation.
+Run focused checks or tests where possible and report failures precisely.
+Only make minimal fixes if absolutely necessary.
+
+Goal:
+Implement error handling for network errors, API errors, tool errors, session errors, UI errors, and edge cases with retry logic and graceful degradation
+
+Acceptance criteria:
+- Network errors: connection failures, timeouts with retry
+- API errors: 401 auth, 429 rate limit, 500 server errors
+- Tool errors: input validation, file not found, permission denied
+- Automatic retry with exponential backoff (max 3 retries)
+- User-friendly error messages with actionable suggestions
+- Context preservation after errors
+- Graceful shutdown with unsaved changes prompt
+
+Continuation handoff:
+- Kind: restart
+- Reason: Stale runner detected while subagent `SA-0012` (qa/codex) was still marked running in `testing`.
+- Engine path: codex -> codex
+- Prior subagent: SA-0012 at `subagents/SA-0012-qa`
+- Prior summary: Interrupted run recovered after stale runner detection. Resume from `testing`.
+- Prior snippet: I’m validating the implementation against the rejected retry criterion first, then I’ll rerun the focused test slice and confirm whether the acceptance criteria now hold or still fail.
+- Engine thread id: 019d5a67-98d3-78b0-b5db-f97b7461d082
+- Handoff artifacts: `subagents/SA-0012-qa/session.yaml`, `subagents/SA-0012-qa/report.yaml`, `subagents/SA-0012-qa/transcript.md`
+- Continue from the prior stage context instead of restarting discovery from scratch.
+- Reuse the recorded artifacts and continuation identifiers when they help you preserve progress safely.
+
+Plan:
+- No plan defined.
+
+PM sizing:
+- Current PM complexity: complex
+- Current planned effort: l
+
+Constraints:
+- Keep changes scoped to the task.
+
+Return exactly this structure:
+VERDICT: PASS|FAIL|REJECT|BLOCKED
+SUMMARY: one-line summary
+FILES_CHANGED:
+- path/to/file
+TESTS_ADDED: <integer>
+TESTS_PASSING: <integer>
+WARNINGS:
+- optional warning
+
+Preferred: emit a schema-validated JSON block instead of the text above.
+Place the JSON on the line(s) after `STAGE_RESULT:`.
+STAGE_RESULT:
+{"verdict":"pass","summary":"one-line summary","files_changed":["path/to/file"],"tests":{"added":0,"passing":0},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}
+The text format above is still accepted as a fallback.
+
+Discussion thread:
+
+--- [2026-04-04T18:30:02+00:00] planner (grooming) — pass ---
+Grooming PASS for requested task "T-0005 Comprehensive error handling and edge cases". The Litehive workspace did not contain a T-0005 task record, so I created the missing local task record as T-0002 with the provided goal and acceptance criteria before reporting. Repo inspection shows partial lower-layer coverage already exists: API retries/backoff are implemented in goz/api/client.py with 3 total attempts and exponential backoff; session persistence already preserves history and can load/list/delete; chat history already compresses older context to preserve continuity. The main missing work is orchestration and UX in the agent path: AgentCore currently collapses all API/tool failures into generic assistant text without typed recovery or user-facing retry state; ChatScreen uses a plain textual Input rather than the custom ChatInput expected by tests and has no structured error notification/retry path; AgentApp quits immediately and does not prompt on unsaved changes; SessionManager only handles missing/corrupt files and not permission/disk-full cases with product-level messaging.
+
+What I verified:
+- Read tracker/spec and relevant implementation paths: goz/api/client.py, goz/api/errors.py, goz/agent/core.py, goz/agent/history.py, goz/agent/sessions.py, goz/agent/tui/app.py, goz/agent/tui/screens/chat.py, goz/agent/tools/base.py, goz/agent/tools/file_tools.py, goz/agent/tools/bash_tool.py.
+- Ran focused baseline tests: uv run pytest -q tests/test_e2e_api_client.py tests/test_session_persistence.py tests/test_tui_integration.py tests/test_chat_client.py
+- Result: 120 passed, 15 failed. The failures are pre-existing TUI mismatches around chat input/session stubs, not new changes from this task.
+
+Implementation plan for next stage:
+1. Introduce a centralized agent/TUI error model for recoverable vs non-recoverable failures, with typed mapping for network/API/tool/session/UI cases and actionable messages.
+2. Add retry orchestration in the interactive agent path with exponential backoff and max 3 retries for retryable network/429/selected 5xx failures, while preserving conversation/session state across retries.
+3. Tighten API error classification so 401 fails fast with auth guidance, 429 exposes rate-limit guidance and retry delay messaging, and 500-class errors degrade gracefully after retries.
+4. Normalize tool error surfaces so ToolInputError includes field detail, file/path errors include the path and operation, permission errors are surfaced explicitly, and tool timeouts remain recoverable from the UI.
+5. Expand SessionManager and session load/save call sites to distinguish corrupted, missing, permission, and storage-write failures without crashing, and preserve the current session context when recovery is possible.
+6. Update the agent TUI to use the intended chat input widget, ignore empty/whitespace-only submissions, keep long/unicode input intact, show visible dismissible error notifications, and add graceful quit flow with unsaved-changes confirmation.
+7. Add focused tests first/tight for retry behavior, session recovery, UI notifications, empty input, quit-with-unsaved-changes, and context preservation after failures.
+
+Refined acceptance criteria for implementation:
+- Retry policy should mean 3 total attempts maximum (initial attempt plus up to 2 retries) unless product explicitly wants 3 retries after the first call.
+- Automatic retry applies only to retryable network failures, timeouts, 429, and selected transient 5xx responses; 401 and tool validation/file errors should fail fast with guidance.
+- Context preservation means no loss of chat history/session metadata after recoverable errors and after retry exhaustion.
+- Graceful shutdown means prompting only when there are unsaved changes or unsaved session state.
+
+PM sizing:
+- PM_COMPLEXITY: complex
+- PLANNED_EFFORT: l
+
+Risks and notes:
+- There is baseline TUI debt before starting this task: current tests expect ChatInput but ChatScreen mounts textual.widgets.Input, and AgentApp.load_session currently raises FileNotFoundError rather than behaving like the older stub tests expected.
+- The current API client already has retry/backoff at the HTTP wrapper layer. The new work should avoid double-retrying in a way that multiplies wait time unexpectedly; central retry ownership should be explicit.
+
+--- [2026-04-04T18:37:18+00:00] swe (implementing) — pass ---
+Implemented comprehensive recoverable error handling across chat, agent core, sessions, and agent TUI. Added chat retry handling with exponential backoff for transient failures (network, timeout, 429, 5xx) while still failing fast on auth errors; API/server/rate-limit errors now surface actionable guidance. Hardened AgentCore so tool validation, file-not-found, permission, timeout, and API failures are formatted into user-facing assistant/tool messages without dropping the current conversation context, preserving the triggering user turn in history after recoverable failures. Hardened SessionManager save/load paths for corrupted session files, permission failures, missing directories, and disk-full save errors with path-specific recovery guidance. Added unsaved-change tracking to AgentApp plus quit confirmation, and wired ChatScreen input/clear/quit flows to preserve dirty-state handling.
+
+Verification run:
+- uv run pytest -q tests/test_chat_client.py tests/test_sessions.py tests/test_agent_tui.py tests/test_agent_core.py
+- uv run pytest -q tests/test_session_commands.py tests/test_session_persistence.py
+
+Evidence against acceptance criteria:
+- Network errors / timeouts with retry: covered by new ChatClient retry tests for timeout exhaustion and transient 429/server retry flow in tests/test_chat_client.py plus existing chat client error tests.
+- API errors 401/429/500: auth remains non-retry; 429 and 5xx now retry with actionable messages and are covered by tests/test_chat_client.py.
+- Tool errors: AgentCore now formats invalid input, file-not-found, permission, timeout, and generic tool failures into actionable tool-result text; covered by tests/test_agent_core.py and existing tool/session suites.
+- Exponential backoff max 3 attempts total: implemented in ChatClient with 2 retries after initial attempt, matching the existing repository retry contract and tests.
+- User-friendly actionable messages: added in goz/api/errors.py, goz/agent/core.py, and goz/agent/sessions.py.
+- Context preservation after errors: verified in tests/test_agent_core.py by asserting the original user message remains in history after API failure.
+- Graceful shutdown with unsaved changes prompt: implemented in AgentApp/action_quit and covered in tests/test_agent_tui.py.
+
+Residual note: the targeted chat-client suite still emits existing AsyncMock iteration warnings in older stream-mocking tests, but the suite passes and no functional failure was observed.
+
+--- [2026-04-04T18:39:38+00:00] qa (testing) — reject ---
+STAGE_RESULT:
+{"verdict":"reject","summary":"Focused verification passed 112 tests, but automatic retry stops after 2 retries instead of the required max 3 retries.","files_changed":["goz/agent/chat_client.py","goz/agent/core.py","goz/agent/sessions.py","goz/agent/tui/app.py","goz/agent/tui/screens/chat.py","goz/api/errors.py","tests/test_agent_core.py","tests/test_agent_tui.py","tests/test_chat_client.py","tests/test_sessions.py"],"tests":{"added":11,"passing":112},"warnings":["Focused pytest run emitted 4 RuntimeWarning entries about an unawaited AsyncMock in streaming tests, but the suite still passed.","Workspace task record for this work is T-0002 even though the stage prompt referred to T-0005."],"follow_up_tasks":["Update chat retry logic and tests so recoverable network/API failures allow up to 3 retries (4 total attempts) with exponential backoff, matching the acceptance criteria."],"acceptance_criteria":[{"criterion":"Network errors: connection failures, timeouts with retry","status":"partially_met","evidence":"Focused tests in tests/test_chat_client.py pass for connection failure and timeout handling, but reproduction shows only 2 retries instead of the required max 3 retries."},{"criterion":"API errors: 401 auth, 429 rate limit, 500 server errors","status":"partially_met","evidence":"Focused tests pass for 401/429/500 handling and user-facing messages, but 429/500 retry exhaustion currently stops after 2 retries."},{"criterion":"Tool errors: input validation, file not found, permission denied","status":"met","evidence":"tests/test_agent_core.py and existing tool-path handling verify actionable tool error formatting for invalid input, file not found, and permission denied."},{"criterion":"Automatic retry with exponential backoff (max 3 retries)","status":"not_met","evidence":"Observed ChatClient.max_retries == 2, with 3 total attempts and 2 sleep/backoff calls."},{"criterion":"User-friendly error messages with actionable suggestions","status":"met","evidence":"Verified in changed error formatting paths for API/tool/session/TUI errors and focused tests."},{"criterion":"Context preservation after errors","status":"met","evidence":"tests/test_agent_core.py verifies the user message remains in history after an API error and an assistant error message is added."},{"criterion":"Graceful shutdown with unsaved changes prompt","status":"met","evidence":"tests/test_agent_tui.py verifies dirty sessions prompt with ConfirmScreen instead of exiting immediately."}]}
+
+EXPECTED behavior: recoverable network/API failures should use exponential backoff for up to 3 retries before surfacing the final error.
+
+OBSERVED behavior: ChatClient is configured with max_retries 2, so it makes only 3 total attempts and sleeps twice before raising the final error. Reproduction output: max_retries 2; stream_calls 3; sleep_calls 2; raised ApiError 500 [API_ERROR] Server error from the API. Retry shortly; the service may be degraded.
+
+Steps to reproduce:
+1. Run: uv run pytest -q tests/test_chat_client.py tests/test_agent_core.py tests/test_sessions.py tests/test_agent_tui.py
+2. Run:
+   uv run python - <<"PY"
+   import asyncio
+   from unittest.mock import AsyncMock, MagicMock, patch
+   import anthropic
+   from goz.agent.chat_client import ChatClient
+   from goz.config import Config
+
+   async def main():
+       client = ChatClient(Config(zai_token="test-token"))
+       print("max_retries", client.max_retries)
+       mock_response = MagicMock(); mock_response.status_code = 500
+       class ErrorContext:
+           async def __aenter__(self):
+               raise anthropic.APIStatusError(message="Server unavailable", response=mock_response, body=None)
+           async def __aexit__(self, *args):
+               pass
+       with patch.object(client._client, "messages") as mock_messages, patch("goz.agent.chat_client.asyncio.sleep", new=AsyncMock()) as mock_sleep:
+           mock_messages.stream.side_effect = [ErrorContext(), ErrorContext(), ErrorContext()]
+           try:
+               async for _ in client.chat_completion([{"role": "user", "content": "Hello"}]):
+                   pass
+           except Exception as e:
+               print("raised", type(e).__name__, getattr(e, "statusCode", None), str(e))
+           print("stream_calls", mock_messages.stream.call_count)
+           print("sleep_calls", mock_sleep.await_count)
+   asyncio.run(main())
+   PY
+
+Criteria not met: Automatic retry with exponential backoff (max 3 retries), and the retry portions of the network/API criteria.
+Criteria already satisfied: tool error formatting, user-friendly actionable messages, context preservation after errors, and graceful shutdown with unsaved changes prompt.
+
+--- [2026-04-04T18:42:11+00:00] reviewer (accepting) — reject ---
+STAGE_RESULT:
+{"verdict":"reject","summary":"Focused verification passed, but retry handling still stops after 2 retries instead of the required max 3 retries.","files_changed":["goz/agent/chat_client.py","goz/agent/core.py","goz/agent/sessions.py","goz/agent/tui/app.py","goz/agent/tui/screens/chat.py","goz/api/errors.py","tests/test_agent_core.py","tests/test_agent_tui.py","tests/test_chat_client.py","tests/test_sessions.py"],"tests":{"added":11,"passing":112},"warnings":["Focused pytest run emitted 4 RuntimeWarning entries about an unawaited AsyncMock in streaming tests, but the suite still passed.","Workspace/task artifact naming is inconsistent: the stage prompt refers to T-0005, while the repo task record is T-0002."],"follow_up_tasks":[{"title":"Align retry policy with acceptance criteria","rationale":"Recoverable network/API failures currently allow only 2 retries after the initial attempt; the acceptance criteria require max 3 retries.","blocking":true,"goal":"Update recoverable retry handling and tests so retryable failures can make an initial attempt plus up to 3 retries with exponential backoff.","acceptance_criteria":["Recoverable network, timeout, 429, and selected 5xx failures attempt up to 4 total calls (initial + 3 retries).","Exponential backoff remains in place and tests assert the retry count.","401/auth failures still fail fast without retry."],"task_type":"bugfix"}],"acceptance_criteria":[{"criterion":"Network errors: connection failures, timeouts with retry","status":"partially_met","evidence":"ChatClient maps connection and timeout failures to user-facing errors and retries them, but the reproduced behavior shows only 2 retries rather than the required max 3 retries."},{"criterion":"API errors: 401 auth, 429 rate limit, 500 server errors","status":"partially_met","evidence":"Focused tests cover 401/429/500 handling and user-facing messages, but 429 and 500 retry exhaustion still stop after 2 retries."},{"criterion":"Tool errors: input validation, file not found, permission denied","status":"met","evidence":"AgentCore formats ToolInputError, FileNotFoundError, and PermissionError into actionable tool-result text; focused tests cover invalid input and code inspection confirms file/permission branches."},{"criterion":"Automatic retry with exponential backoff (max 3 retries)","status":"not_met","evidence":"Reproduced ChatClient.max_retries == 2 with 3 total attempts and 2 backoff sleeps."},{"criterion":"User-friendly error messages with actionable suggestions","status":"met","evidence":"Changed API, tool, and session error formatting includes actionable guidance such as checking tokens, retrying later, verifying paths, or deleting corrupted sessions."},{"criterion":"Context preservation after errors","status":"met","evidence":"tests/test_agent_core.py verifies the triggering user message remains in history after an API error and an assistant error message is added."},{"criterion":"Graceful shutdown with unsaved changes prompt","status":"met","evidence":"tests/test_agent_tui.py verifies dirty sessions push ConfirmScreen instead of exiting immediately."}]}
+FOLLOW_UP_TASKS:
+[{"title":"Align retry policy with acceptance criteria","rationale":"Recoverable retryable failures only retry twice today, which blocks acceptance for this task.","blocking":true,"goal":"Make retryable failures honor max 3 retries with exponential backoff and update focused tests accordingly.","acceptance_criteria":["ChatClient uses 3 retries max for retryable failures.","Focused tests assert 4 total attempts for retryable 429/500/timeout cases.","Non-retryable auth failures still fail fast."],"task_type":"bugfix"}]
+EXPECTED behavior: recoverable network and retryable API failures should use exponential backoff for up to 3 retries before surfacing the final error.
+OBSERVED behavior: ChatClient is configured with max_retries 2, so it makes 3 total attempts and sleeps twice before raising the final error. Independent reproduction output: max_retries 2; stream_calls 3; sleep_calls 2; raised ApiError 500 [API_ERROR] Server error from the API. Retry shortly; the service may be degraded.
+Steps to reproduce:
+1. Run: uv run pytest -q tests/test_chat_client.py tests/test_agent_core.py tests/test_sessions.py tests/test_agent_tui.py
+2. Run:
+   uv run python - <<"PY"
+   import asyncio
+   from unittest.mock import AsyncMock, MagicMock, patch
+   import anthropic
+   from goz.agent.chat_client import ChatClient
+   from goz.config import Config
+
+   async def main():
+       client = ChatClient(Config(zai_token="test-token"))
+       print("max_retries", client.max_retries)
+       mock_response = MagicMock(); mock_response.status_code = 500
+       class ErrorContext:
+           async def __aenter__(self):
+               raise anthropic.APIStatusError(message="Server unavailable", response=mock_response, body=None)
+           async def __aexit__(self, *args):
+               pass
+       with patch.object(client._client, "messages") as mock_messages, patch("goz.agent.chat_client.asyncio.sleep", new=AsyncMock()) as mock_sleep:
+           mock_messages.stream.side_effect = [ErrorContext(), ErrorContext(), ErrorContext()]
+           try:
+               async for _ in client.chat_completion([{"role": "user", "content": "Hello"}]):
+                   pass
+           except Exception as e:
+               print("raised", type(e).__name__, getattr(e, "statusCode", None), str(e))
+           print("stream_calls", mock_messages.stream.call_count)
+           print("sleep_calls", mock_sleep.await_count)
+   asyncio.run(main())
+   PY
+Criteria not met: Automatic retry with exponential backoff (max 3 retries), plus the retry portion of the network and retryable API criteria.
+Criteria already satisfied: 401 auth handling, user-friendly error messages, tool error formatting, context preservation after errors, and graceful shutdown with unsaved changes prompt.
+
+IMPORTANT: When you are done, you MUST submit your verdict by running:
+  litehive report --verdict <pass|fail|reject|blocked> --role recovery --step testing --message "<your report>"
+
+Your --message is the PRIMARY way the next agent understands what happened.
+Do NOT rely on your raw transcript being read — write the report as if it is the only thing the next agent will see.
+
+Report requirements:
+- On PASS/ACCEPT: explain what you verified, what tests you ran, what evidence confirms the acceptance criteria are met.
+- On REJECT: you MUST include ALL of the following:
+  1. EXPECTED behavior: what should happen according to the acceptance criteria
+  2. OBSERVED behavior: what actually happens (exact error messages, test output, wrong values)
+  3. Steps to reproduce: the exact command or test that demonstrates the gap
+  4. Which acceptance criteria are not met and which ones are already satisfied
+- On FAIL: explain what went wrong and whether it is fixable or needs a different approach.
+- On BLOCKED: explain what dependency or resource is missing.
+
+A vague rejection like 'tests fail' or 'missing evidence' is useless and causes infinite loops.
+A good rejection looks like: 'Expected: `litehive engine gemini` switches the default engine and prints confirmation. Observed: command exits 0 but config.yaml still shows the old engine. Reproduce: run `litehive engine gemini` then `cat .litehive/config.yaml`. Criteria 1-3 are met, criterion 4 (persistence) is not.'
+
+The text-based VERDICT/SUMMARY format is accepted as fallback but litehive report is strongly preferred.

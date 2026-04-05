@@ -7,13 +7,13 @@ task_type: null
 engine: codex
 model: null
 mode: implementation
-status: queued
+status: deferred
 pipeline_status: backlog
 priority: medium
 pm_complexity: moderate
 planned_effort: m
 created_at: '2026-04-04T18:23:32+00:00'
-updated_at: '2026-04-04T18:23:32+00:00'
+updated_at: '2026-04-05T04:22:16+00:00'
 goal: Implement all agent switching slash commands (/general, /review, /test, /docs,
   /refactor, /debug, /security, /perf, /explore, /plan) and seamless transitions
 acceptance_criteria:
@@ -38,3 +38,4 @@ git:
 retry_policy:
   max_retries: null
 created_from: null
+upstream_origin: null

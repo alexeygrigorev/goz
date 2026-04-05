@@ -1,0 +1,28 @@
+status: interrupted
+summary: '{"type":"step_start","timestamp":1775339629787,"sessionID":"ses_2a5834cd9ffebTTgu6pWGCpXTw","part":{"id":"prt_d5a7cecd9001iKV4WpvWWU2MPo","sessionID":"ses_2a5834cd9ffebTTgu6pWGCpXTw","messageID":"msg_d5a7cb3aa001fgl1wRj4VhdWXX","type":"step-start","snapshot":"ca899a1a4cdc1c0aed81c36cc6e499e00ece5665"}}'
+files_changed: []
+tests:
+  added: 0
+  passing: 0
+warnings: []
+resource_control:
+  enabled: false
+  backend: null
+  runtime: null
+  image: null
+  network_mode: null
+  workspace_mode: null
+  memory_mb: null
+  cpu_count: null
+  process_limit: null
+  environment: []
+  credential_inputs: []
+  propagated_mounts: []
+resource_limit_event: null
+continuation:
+  session_id: ses_2a5834cd9ffebTTgu6pWGCpXTw
+  thread_id: null
+  metadata: {}
+  updated_at: '2026-04-04T22:06:01+00:00'
+interruption_reason: Execution interrupted during testing
+resume_stage: testing
