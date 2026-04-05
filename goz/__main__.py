@@ -919,6 +919,7 @@ Commands:
   config    Manage configuration
   doctor    Environment + connectivity checks
   usage     Show token usage and quota
+  models    List available models with pricing
   tui       Launch interactive terminal UI
 
 Global Options:
@@ -1019,6 +1020,10 @@ With no command, launches the interactive TUI.
         from goz.cli.usage import cmd_usage as _cmd_usage
 
         asyncio.run(_cmd_usage(args.args))
+    elif args.command == "models":
+        from goz.cli.models import cmd_models as _cmd_models
+
+        asyncio.run(_cmd_models(args.args))
     elif args.command in ("tui", "ui"):
         cmd_tui(args.args)
     else:
