@@ -32,8 +32,9 @@ goz search "python async patterns"    # Web search
 goz read https://example.com/article  # Fetch and parse a web page
 goz repo tree owner/repo              # Browse GitHub repo structure
 goz repo search owner/repo "query"    # Search code in a GitHub repo
-goz usage                             # Show Z.AI token usage and quota
+goz usage                             # Show Z.AI quota and token usage
 goz usage --json                      # Usage stats as JSON
+goz models                            # List available Z.AI models with pricing
 goz doctor                            # Check API connectivity
 goz config get zai_token              # View config
 ```
@@ -65,17 +66,36 @@ litehive add "Some task" --engine goz
 litehive run
 ```
 
-## Tools available during `goz run`
+## Tools
+
+These tools are available to the agent during `goz run`:
 
 - `bash` - Execute shell commands with output capture
-- `view_file` - Read files with line numbers
-- `create_file` - Create new files
-- `str_replace_editor` - Edit files with string replacement
-- `glob` - Find files by pattern
+- `view_file` - Read files with line numbers and optional line range
+- `write_file` - Create or overwrite files
+- `str_replace_editor` - Targeted text replacement in existing files
+- `glob` - Find files by pattern (e.g. `**/*.py`)
 - `grep` - Search file contents with regex
 - `search` - Z.AI web search
 - `read` - Fetch web pages as markdown
 - `repo_search`, `repo_tree`, `repo_read` - GitHub repo exploration
+
+## Quota and usage
+
+Check your Z.AI quota and token usage:
+
+```
+$ goz usage
+Plan: max
+
+API calls (5h window):
+  Limit:     4.0k
+  Used:      10 (1%)
+  Remaining: 4.0k
+
+Token quota (3h window):
+  Used: 3% (resets 2026-04-05 15:49)
+```
 
 ## Configuration
 
@@ -98,6 +118,6 @@ goz config set zai_token <your-key>
 ## Development
 
 ```bash
-uv run pytest -q           # Run tests
-uv run pytest tests_integration/  # Integration tests (requires API key)
+uv run pytest -q                      # Run tests
+uv run pytest tests_integration/      # Integration tests (requires API key)
 ```
