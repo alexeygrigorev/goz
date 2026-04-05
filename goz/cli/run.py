@@ -256,6 +256,7 @@ You are a coding agent. You complete software engineering tasks by using tools t
 
 
 def _emit_event(event: dict[str, Any], stdout: TextIO) -> None:
+    event["timestamp"] = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
     stdout.write(json.dumps(event, ensure_ascii=True) + "\n")
     stdout.flush()
 
