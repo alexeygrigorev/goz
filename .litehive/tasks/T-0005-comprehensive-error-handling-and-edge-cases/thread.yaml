@@ -1,9 +1,0 @@
-- role: recovery
-  step: commit_to_git
-  verdict: pass
-  message: Committed tracked main-repo changes that were blocking merge, created the
-    required attempt-2 worktree commit, resolved the resulting .litehive/state.yaml
-    merge conflict by preserving both sides of the queue, and merged task head a4f9c54
-    into master as 68faaaf.
-  files_changed: []
-  created_at: '2026-04-04T18:44:57+00:00'

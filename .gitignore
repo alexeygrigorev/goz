@@ -36,3 +36,11 @@ uv.lock
 .litehive/tasks/*/subagents/
 .litehive/engine-monitoring.yaml
 .litehive/runtime/
+.litehive/tasks/*/task.yaml
+.litehive/tasks/*/thread.yaml
+.litehive/tasks/*/journal.md
+.litehive/tasks/*/events.jsonl
+.litehive/tasks/*/brief.md
+.litehive/tasks/*/reports/
+.litehive/state.yaml
+.litehive/config.yaml
