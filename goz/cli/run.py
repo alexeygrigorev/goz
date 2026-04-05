@@ -29,6 +29,7 @@ from goz.agent.usage import UsageAccumulator
 from goz.agent.tools import (
     BashTool,
     CreateFileTool,
+    DescribeImageTool,
     GlobTool,
     GrepTool,
     ReadTool,
@@ -210,6 +211,7 @@ def build_default_tool_registry(config: Config, working_dir: str) -> ToolRegistr
     registry.register(RepoSearchTool(config))
     registry.register(RepoTreeTool(config))
     registry.register(RepoReadTool(config))
+    registry.register(DescribeImageTool(config))
     return registry
 
 

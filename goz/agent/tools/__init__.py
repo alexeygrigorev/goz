@@ -40,6 +40,10 @@ from goz.agent.tools.search_tools import (
     GrepTool,
 )
 
+from goz.agent.tools.vision_tool import (
+    DescribeImageTool,
+)
+
 __all__ = [
     # Base
     "Tool",
@@ -67,4 +71,6 @@ __all__ = [
     # Search Tools
     "GlobTool",
     "GrepTool",
+    # Vision Tools
+    "DescribeImageTool",
 ]

@@ -7,6 +7,7 @@ This package provides the core agent functionality including:
 - AgentCore: Main agent orchestrator (Issue 15)
 - Tool: Protocol and registry for agent tools (Issue 18)
 - File Tools: ViewFileTool, CreateFileTool, StrReplaceEditorTool (Issue 19)
+- Vision Tool: DescribeImageTool (Issue 20)
 """
 from goz.agent.stream_processor import (
     StreamProcessor,
@@ -41,6 +42,7 @@ from goz.agent.tools import (
     ViewFileTool,
     CreateFileTool,
     StrReplaceEditorTool,
+    DescribeImageTool,
 )
 
 __all__ = [
@@ -72,4 +74,6 @@ __all__ = [
     "ViewFileTool",
     "CreateFileTool",
     "StrReplaceEditorTool",
+    # Vision Tools
+    "DescribeImageTool",
 ]
