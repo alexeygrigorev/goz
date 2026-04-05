@@ -67,15 +67,15 @@ litehive run
 
 ## Tools available during `goz run`
 
-- `bash` -- Execute shell commands with output capture
-- `view_file` -- Read files with line numbers
-- `create_file` -- Create new files
-- `str_replace_editor` -- Edit files with string replacement
-- `glob` -- Find files by pattern
-- `grep` -- Search file contents with regex
-- `search` -- Z.AI web search
-- `read` -- Fetch web pages as markdown
-- `repo_search`, `repo_tree`, `repo_read` -- GitHub repo exploration
+- `bash` - Execute shell commands with output capture
+- `view_file` - Read files with line numbers
+- `create_file` - Create new files
+- `str_replace_editor` - Edit files with string replacement
+- `glob` - Find files by pattern
+- `grep` - Search file contents with regex
+- `search` - Z.AI web search
+- `read` - Fetch web pages as markdown
+- `repo_search`, `repo_tree`, `repo_read` - GitHub repo exploration
 
 ## Configuration
 
