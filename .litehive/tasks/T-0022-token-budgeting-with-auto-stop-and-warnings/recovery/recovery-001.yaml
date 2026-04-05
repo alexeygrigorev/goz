@@ -1,0 +1,119 @@
+task_id: T-0022
+stage: testing
+trigger: stale_runner_recovery
+summary: Recovered stale runner state and returned the task to `testing`.
+failure_classification: stale_runner
+runnable_state: runnable
+blocker: null
+evidence:
+- kind: task
+  label: task.yaml
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/task.yaml
+  exists: true
+  summary: status=interrupted pipeline_status=testing priority=medium
+  metadata: {}
+- kind: runtime
+  label: runtime.yaml
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/runtime.yaml
+  exists: true
+  summary: execution_status=interrupted current_stage=testing last_outcome=interrupted
+  metadata: {}
+- kind: thread
+  label: thread.yaml
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/thread.yaml
+  exists: false
+  summary: discussion entries=0
+  metadata: {}
+- kind: events
+  label: events.jsonl
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/events.jsonl
+  exists: true
+  summary: task lifecycle and subagent event stream
+  metadata: {}
+- kind: stage_report
+  label: latest stage report
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/reports/implementing-002.yaml
+  exists: true
+  summary: latest report for T-0022
+  metadata: {}
+- kind: subagent_artifact
+  label: latest subagent session
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/subagents/SA-0003-qa/session.yaml
+  exists: true
+  summary: artifact from SA-0003-qa
+  metadata: {}
+- kind: subagent_artifact
+  label: latest subagent report
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/subagents/SA-0003-qa/report.yaml
+  exists: true
+  summary: artifact from SA-0003-qa
+  metadata: {}
+- kind: subagent_artifact
+  label: latest subagent transcript
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/subagents/SA-0003-qa/transcript.md
+  exists: true
+  summary: artifact from SA-0003-qa
+  metadata: {}
+- kind: subagent_artifact
+  label: latest subagent stdout
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/subagents/SA-0003-qa/stdout.txt
+  exists: true
+  summary: artifact from SA-0003-qa
+  metadata: {}
+- kind: subagent_artifact
+  label: latest subagent stderr
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/subagents/SA-0003-qa/stderr.txt
+  exists: true
+  summary: artifact from SA-0003-qa
+  metadata: {}
+- kind: subagent_artifact
+  label: latest subagent events timeline
+  path: .litehive/tasks/T-0022-token-budgeting-with-auto-stop-and-warnings/subagents/SA-0003-qa/timeline.yaml
+  exists: false
+  summary: artifact from SA-0003-qa
+  metadata: {}
+- kind: wrapper_log
+  label: latest run-all log
+  path: .litehive/logs/run-all/20260405T200824Z/0001-repair.log
+  exists: true
+  summary: latest daemon/run-all wrapper log
+  metadata: {}
+- kind: engine_monitoring
+  label: engine-monitoring.yaml
+  path: .litehive/engine-monitoring.yaml
+  exists: true
+  summary: engine=goz invocations=32 failures=9 limits=0
+  metadata: {}
+- kind: git
+  label: main checkout git state
+  path: null
+  exists: true
+  summary: head=4ba8e097dcb2fb05a108adf68fffc96b78876891 dirty=0
+  metadata:
+    dirty_paths: []
+- kind: worktree
+  label: task worktree state
+  path: .litehive/worktrees/T-0022-token-budgeting-with-auto-stop-and-warnings
+  exists: true
+  summary: dirty=4
+  metadata:
+    dirty_paths:
+    - oz/agent/usage.py
+    - oz/cli/run.py
+    - ests/test_run_cli.py
+    - tests/test_token_budget.py
+    stage: testing
+actions:
+- action: clear_stale_active_state
+  applied: true
+  summary: Cleared stale active runner state for the task.
+  metadata: {}
+- action: requeue_stage
+  applied: true
+  summary: Requeued the task at testing.
+  metadata:
+    stage: testing
+warnings: []
+recovery_subagent_id: null
+recovery_subagent_path: null
+created_at: '2026-04-05T20:08:25+00:00'
