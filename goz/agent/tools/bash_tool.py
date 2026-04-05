@@ -84,10 +84,8 @@ class BashTool(BaseTool):
 
     # Destructive command patterns
     DESTRUCTIVE_PATTERNS = [
-        r"^\s*rm\s+-rf\s+/",      # rm -rf /
-        r"^\s*rm\s+-rf?\s+\*",    # rm -rf * or rm -f *
-        r"^\s*rm\s+-r\s+/",       # rm -r /path
-        r"^\s*rm\s+-rf\s+",       # rm -rf (with path)
+        r"^\s*rm\s+-rf?\s+",      # rm -r or rm -rf with any path
+        r"^\s*rm\s+-f\s+\*",      # rm -f *
         r"^\s*mv\s+.*\s+/$",      # mv to root
         r"^\s*dd\s+if=",          # dd command
         r"^\s*format\s+[a-z]:",   # Windows format (e.g. format C:)

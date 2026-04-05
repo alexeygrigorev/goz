@@ -267,7 +267,7 @@ class TestRunPromptJsonl:
 
         assert registry.get("bash").working_dir == str(tmp_path)
         assert registry.get("view_file").working_dir == str(tmp_path)
-        assert registry.get("create_file").working_dir == str(tmp_path)
+        assert registry.get("write_file").working_dir == str(tmp_path)
         assert registry.get("str_replace_editor").working_dir == str(tmp_path)
 
     @pytest.mark.asyncio
