@@ -72,12 +72,19 @@ Endpoints:
 
         out: dict = {}
         if quota:
-            out["quota"] = {
-                "limit": quota.limit,
-                "remaining": quota.remaining,
-                "used": quota.used,
-                "window": quota.window_label,
-            }
+            out["level"] = quota.level
+            out["limits"] = [
+                {
+                    "type": lim.type,
+                    "limit": lim.limit,
+                    "used": lim.used,
+                    "remaining": lim.remaining,
+                    "percentage": lim.percentage,
+                    "window_hours": lim.window_hours,
+                    "details": lim.details,
+                }
+                for lim in quota.limits
+            ]
         if usage_7:
             out[f"{usage_7.period_days}_day"] = [
                 {
@@ -106,12 +113,28 @@ Endpoints:
         return
 
     if quota:
-        pct = (quota.used / quota.limit * 100) if quota.limit else 0
-        print(f"Quota ({quota.window_label}):")
-        print(f"  Limit:     {_fmt_tokens(quota.limit)} tokens")
-        print(f"  Used:      {_fmt_tokens(quota.used)} tokens ({pct:.1f}%)")
-        print(f"  Remaining: {_fmt_tokens(quota.remaining)} tokens")
+        print(f"Plan: {quota.level}")
         print()
+        for lim in quota.limits:
+            if lim.type == "TIME_LIMIT":
+                print(f"API calls ({lim.window_hours}h window):")
+                print(f"  Limit:     {_fmt_tokens(lim.limit)}")
+                print(f"  Used:      {_fmt_tokens(lim.used)} ({lim.percentage}%)")
+                print(f"  Remaining: {_fmt_tokens(lim.remaining)}")
+                if lim.details:
+                    print(f"  Breakdown:")
+                    for d in lim.details:
+                        if d.get("usage", 0) > 0:
+                            print(f"    {d['modelCode']}: {d['usage']}")
+            elif lim.type == "TOKENS_LIMIT":
+                from datetime import datetime
+                reset = ""
+                if lim.reset_at:
+                    reset_dt = datetime.fromtimestamp(lim.reset_at / 1000)
+                    reset = f" (resets {reset_dt.strftime('%Y-%m-%d %H:%M')})"
+                print(f"Token quota ({lim.window_hours}h window):")
+                print(f"  Used: {lim.percentage}%{reset}")
+            print()
 
     if usage_7:
         print(f"Model usage ({usage_7.period_days}-day):")

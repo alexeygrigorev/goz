@@ -19,11 +19,21 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class QuotaInfo:
+class QuotaLimit:
+    type: str  # "TIME_LIMIT" or "TOKENS_LIMIT"
     limit: int
-    remaining: int
     used: int
-    window_label: str
+    remaining: int
+    percentage: int
+    window_hours: int
+    reset_at: int | None  # epoch ms
+    details: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class QuotaInfo:
+    level: str  # "max", "pro", "lite"
+    limits: list[QuotaLimit] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -81,24 +91,32 @@ class MonitorClient:
             inner = {}
 
         # Z.AI returns {"data": {"limits": [...], "level": "max"}}
-        # Each limit has: type, usage (total allowed), currentValue (used), remaining
-        limits = inner.get("limits", [])
-        time_limit = next((l for l in limits if l.get("type") == "TIME_LIMIT"), {})
-
-        limit = time_limit.get("usage", inner.get("limit", inner.get("total", 0)))
-        used = time_limit.get("currentValue", inner.get("used", inner.get("consumed", 0)))
-        remaining = time_limit.get("remaining", max(0, limit - used))
+        raw_limits = inner.get("limits", [])
         level = inner.get("level", "")
-        unit = time_limit.get("unit", 5)
-        window = f"{unit}h" if unit else "5h"
+        parsed_limits: list[QuotaLimit] = []
 
-        return QuotaInfo(
-            limit=limit,
-            remaining=remaining,
-            used=used,
-            window_label=f"{window} ({level})" if level else window,
-            raw=data,
-        )
+        for rl in raw_limits:
+            limit_type = rl.get("type", "")
+            total = rl.get("usage", 0)
+            used = rl.get("currentValue", 0)
+            remaining = rl.get("remaining", max(0, total - used))
+            percentage = rl.get("percentage", 0)
+            window_hours = rl.get("unit", 5)
+            reset_at = rl.get("nextResetTime")
+            details = rl.get("usageDetails", [])
+
+            parsed_limits.append(QuotaLimit(
+                type=limit_type,
+                limit=total,
+                used=used,
+                remaining=remaining,
+                percentage=percentage,
+                window_hours=window_hours,
+                reset_at=reset_at,
+                details=details,
+            ))
+
+        return QuotaInfo(level=level, limits=parsed_limits, raw=data)
 
     async def fetch_model_usage(self, days: int = 7) -> ModelUsageReport:
         base = self._base()
