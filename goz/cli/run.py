@@ -42,7 +42,14 @@ from goz.agent.tools import (
     ToolRegistry,
     ViewFileTool,
 )
-from goz.api.errors import TimeoutError as ApiTimeoutError
+from goz.api.errors import (
+    ApiError,
+    AuthError,
+    NetworkError,
+    QuotaError,
+    TimeoutError as ApiTimeoutError,
+    ZaiError,
+)
 from goz.config import Config, load_config
 from goz.context import load_project_context
 
@@ -50,6 +57,47 @@ logger = logging.getLogger(__name__)
 
 MAX_ITERATIONS: int | None = None  # No limit by default
 DEFAULT_AGENT_TYPE = "engine"
+
+AGENT_LOOP_MAX_RETRIES = 3
+AGENT_LOOP_BACKOFF_DELAYS = [2, 4, 8]  # seconds
+
+
+def is_retryable_error(exc: Exception) -> bool:
+    """Classify whether an exception is transient and worth retrying."""
+    if isinstance(exc, AuthError):
+        return False
+    if isinstance(exc, QuotaError):
+        return False
+    if isinstance(exc, ApiError):
+        status = exc.statusCode
+        if status is not None:
+            return status == 429 or status >= 500
+        return False
+    if isinstance(exc, (NetworkError, ApiTimeoutError)):
+        return True
+    if isinstance(exc, (ConnectionError, TimeoutError)):
+        return True
+    return False
+
+
+def emit_quota_exceeded_event(
+    stdout: TextIO,
+    *,
+    code: str,
+    message: str,
+    help: str,
+) -> None:
+    _emit_event(
+        {
+            "type": "quota_exceeded",
+            "error": {
+                "code": code,
+                "message": message,
+                "help": help,
+            },
+        },
+        stdout,
+    )
 
 AUTO_MODEL = "auto"
 
@@ -458,6 +506,11 @@ def _parse_tool_calls(chunks: list[Chunk]) -> list[dict[str, Any]]:
     return tool_calls
 
 
+def _is_transient_tool_error(exc: Exception) -> bool:
+    """Check if a tool execution error is transient and worth one retry."""
+    return isinstance(exc, (asyncio.TimeoutError, ConnectionError, TimeoutError))
+
+
 async def _execute_tool_call(
     tool_registry: ToolRegistry,
     tool_call: dict[str, Any],
@@ -477,17 +530,23 @@ async def _execute_tool_call(
         def stream_callback(line: str, source: str) -> None:
             emit_tool_stream_event(call_id, tool_name, line, source, stdout)
 
-    try:
-        kwargs = dict(tool_call["input"])
-        if stream_callback is not None:
-            kwargs["stream_callback"] = stream_callback
-        result = await asyncio.wait_for(tool.execute(**kwargs), timeout=300)
-    except asyncio.TimeoutError:
-        return f"Tool {tool_call['name']} timed out after 300 seconds", True
-    except Exception as exc:
-        return f"Tool {tool_call['name']} failed: {exc}", True
+    kwargs = dict(tool_call["input"])
+    if stream_callback is not None:
+        kwargs["stream_callback"] = stream_callback
 
-    return str(result), False
+    for attempt in range(2):
+        try:
+            result = await asyncio.wait_for(tool.execute(**kwargs), timeout=300)
+            return str(result), False
+        except Exception as exc:
+            if attempt == 0 and _is_transient_tool_error(exc):
+                logger.info("Tool %s failed with transient error, retrying: %s", tool_call["name"], exc)
+                continue
+            if isinstance(exc, asyncio.TimeoutError):
+                return f"Tool {tool_call['name']} timed out after 300 seconds", True
+            return f"Tool {tool_call['name']} failed: {exc}", True
+
+    return f"Tool {tool_call['name']} failed after retry", True
 
 
 async def run_prompt_jsonl(
@@ -556,45 +615,77 @@ async def run_prompt_jsonl(
             iteration += 1
             if MAX_ITERATIONS is not None and iteration > MAX_ITERATIONS:
                 break
-            chunks: list[Chunk] = []
-            assistant_chunks: list[str] = []
-            usage_acc.begin_turn()
 
             effective_system = system_prompt if system_prompt is not None else DEFAULT_SYSTEM_PROMPT
             if effective_system == DEFAULT_SYSTEM_PROMPT and not no_context:
                 project_ctx = load_project_context(working_dir)
                 if project_ctx:
                     effective_system = project_ctx + "\n\n" + effective_system
-            stream = client.chat_completion(
-                messages=history.to_api_format(),
-                tools=registry.to_openai_schema(),
-                tool_choice="auto",
-                system=effective_system,
-            )
 
-            async for chunk in stream:
-                chunks.append(chunk)
-                if (
-                    isinstance(chunk, ContentBlockDelta)
-                    and chunk.type == "text_delta"
-                    and chunk.text
-                ):
-                    assistant_chunks.append(chunk.text)
-                    emit_text_event(chunk.text, stdout)
-                elif isinstance(chunk, MessageStart):
-                    usage_obj = type(
-                        "U",
-                        (),
-                        {
-                            "input_tokens": chunk.usage_input_tokens,
-                            "cache_read_input_tokens": chunk.usage_cache_read,
-                            "cache_creation_input_tokens": chunk.usage_cache_creation,
-                        },
-                    )()
-                    usage_acc.apply_message_start(usage_obj)
-                elif isinstance(chunk, UsageDelta):
-                    usage_obj = type("U", (), {"output_tokens": chunk.output_tokens})()
-                    usage_acc.apply_message_delta(usage_obj)
+            # Agent-loop retry with exponential backoff
+            last_error: Exception | None = None
+            for retry_attempt in range(AGENT_LOOP_MAX_RETRIES + 1):
+                chunks = []
+                assistant_chunks = []
+                usage_acc.begin_turn()
+                try:
+                    stream = client.chat_completion(
+                        messages=history.to_api_format(),
+                        tools=registry.to_openai_schema(),
+                        tool_choice="auto",
+                        system=effective_system,
+                    )
+
+                    async for chunk in stream:
+                        chunks.append(chunk)
+                        if (
+                            isinstance(chunk, ContentBlockDelta)
+                            and chunk.type == "text_delta"
+                            and chunk.text
+                        ):
+                            assistant_chunks.append(chunk.text)
+                            emit_text_event(chunk.text, stdout)
+                        elif isinstance(chunk, MessageStart):
+                            usage_obj = type(
+                                "U",
+                                (),
+                                {
+                                    "input_tokens": chunk.usage_input_tokens,
+                                    "cache_read_input_tokens": chunk.usage_cache_read,
+                                    "cache_creation_input_tokens": chunk.usage_cache_creation,
+                                },
+                            )()
+                            usage_acc.apply_message_start(usage_obj)
+                        elif isinstance(chunk, UsageDelta):
+                            usage_obj = type("U", (), {"output_tokens": chunk.output_tokens})()
+                            usage_acc.apply_message_delta(usage_obj)
+                    last_error = None
+                    break  # success
+                except QuotaError as exc:
+                    emit_quota_exceeded_event(
+                        stdout,
+                        code=exc.code,
+                        message=exc.message,
+                        help=exc.help or "",
+                    )
+                    return 2
+                except Exception as exc:
+                    if not is_retryable_error(exc) or retry_attempt >= AGENT_LOOP_MAX_RETRIES:
+                        last_error = exc
+                        break
+                    delay = AGENT_LOOP_BACKOFF_DELAYS[retry_attempt]
+                    logger.warning(
+                        "Agent loop retryable error (attempt %d/%d), retrying in %ds: %s",
+                        retry_attempt + 1,
+                        AGENT_LOOP_MAX_RETRIES,
+                        delay,
+                        exc,
+                    )
+                    await asyncio.sleep(delay)
+                    last_error = exc
+
+            if last_error is not None:
+                raise last_error
 
             # Emit any model_fallback events that occurred during this turn.
             if isinstance(client, FallingBackChatClient):
