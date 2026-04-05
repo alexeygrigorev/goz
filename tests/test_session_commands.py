@@ -28,7 +28,15 @@ import pytest
 from goz.agent.history import ChatMessage
 from goz.agent.sessions import Session, SessionInfo, SessionManager
 
+# Skip TUI tests in CI — AgentApp needs a real terminal (stdin)
+import os
+import sys
 
+_no_tty = not sys.stdin.isatty() or os.environ.get("CI") == "true"
+_skip_tui = pytest.mark.skipif(_no_tty, reason="TUI tests require a terminal")
+
+
+@_skip_tui
 class TestAgentAppSaveSession:
     """Unit Tests: AgentApp.save_session()."""
 
@@ -127,6 +135,7 @@ class TestAgentAppSaveSession:
         assert "config_snapshot" in data
 
 
+@_skip_tui
 class TestAgentAppLoadSession:
     """Unit Tests: AgentApp.load_session()."""
 
@@ -233,6 +242,7 @@ class TestAgentAppLoadSession:
         assert app.current_agent_type == "coder"
 
 
+@_skip_tui
 class TestChatScreenSlashCommands:
     """Unit Tests: ChatScreen slash command handlers."""
 
@@ -537,6 +547,7 @@ class TestConfirmScreen:
         assert screen.on_confirm is on_confirm
 
 
+@_skip_tui
 class TestSessionCommandIntegration:
     """Integration Tests: Session command workflow."""
 
