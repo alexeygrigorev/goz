@@ -29,3 +29,10 @@ htmlcov/
 .idea/
 *.wav
 uv.lock
+
+# litehive runtime artifacts
+.litehive/logs/
+.litehive/worktrees/
+.litehive/tasks/*/subagents/
+.litehive/engine-monitoring.yaml
+.litehive/runtime/

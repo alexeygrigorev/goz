@@ -24,15 +24,4 @@ pool_stop_on_dirty_git: false
 pool_selection_policy: dependency_aware
 auto_commit: true
 engine_fallbacks:
-  goz:
-  - opencode
-  - codex
-  - gemini
-  opencode:
-  - goz
-  - codex
-  - gemini
-  codex:
-  - opencode
-  - goz
-  - gemini
+  goz: []
