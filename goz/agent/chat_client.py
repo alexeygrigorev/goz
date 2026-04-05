@@ -181,6 +181,7 @@ class ChatClient:
         stream: bool = True,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        system: str | None = None,
     ) -> AsyncIterator[Chunk]:
         """Stream chat completion with tool calling support.
 
@@ -191,6 +192,7 @@ class ChatClient:
             stream: Whether to stream response (True) or wait for complete response (False)
             temperature: Generation temperature (uses config default if None)
             max_tokens: Max tokens in response (uses config default if None)
+            system: System prompt (optional)
 
         Yields:
             Chunk objects from the API response
@@ -215,6 +217,10 @@ class ChatClient:
             "model": self.config.chat_model,
             "messages": messages,
         }
+
+        # Add system prompt if provided and non-empty
+        if system:
+            params["system"] = system
 
         # Add optional parameters
         if tools is not None:

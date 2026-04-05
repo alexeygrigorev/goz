@@ -54,6 +54,17 @@ STAGE_RESULT:
 Return valid JSON after STAGE_RESULT:. Include a verdict.
 """.strip()
 
+DEFAULT_SYSTEM_PROMPT = """\
+You are an action-oriented coding agent. You have access to tools that let you read files, write files, run shell commands, search code, and more.
+
+Instructions:
+- Use tools proactively to explore the codebase, read files, run tests, and make changes. Do not ask permission — just act.
+- Be concise. Minimize explanatory text and maximize tool use. Skip introductions, acknowledgments, and summaries unless the task requires them.
+- Focus on completing the task. Work iteratively: read context, make changes, verify with tests or inspections, and repeat until done.
+- When you encounter errors, diagnose them using tools (read logs, inspect files) and fix them rather than asking for help.
+- If the task is unclear, make reasonable assumptions and proceed. State assumptions briefly if relevant.
+""".strip()
+
 
 def _emit_event(event: dict[str, Any], stdout: TextIO) -> None:
     stdout.write(json.dumps(event, ensure_ascii=True) + "\n")
@@ -241,6 +252,7 @@ async def run_prompt_jsonl(
     chat_client: ChatClient | None = None,
     resume_session_id: str | None = None,
     session_dir: Path | None = None,
+    system_prompt: str | None = None,
 ) -> int:
     """Execute one agent prompt and emit JSONL events."""
     stdout = stdout or sys.stdout
@@ -299,10 +311,12 @@ async def run_prompt_jsonl(
             assistant_chunks: list[str] = []
             usage_acc.begin_turn()
 
+            effective_system = system_prompt if system_prompt is not None else DEFAULT_SYSTEM_PROMPT
             stream = client.chat_completion(
                 messages=history.to_api_format(),
                 tools=registry.to_openai_schema(),
                 tool_choice="auto",
+                system=effective_system,
             )
 
             async for chunk in stream:
@@ -392,15 +406,19 @@ async def cmd_run(args: list[str]) -> None:
   goz run [options] <prompt>
 
 Options:
-  --format, -f json   Output ExternalCLIAdapter-compatible JSONL (default: json)
-  --dir DIR           Working directory for file and shell tools
-  --model MODEL       Override chat model for this invocation
-  --resume-session ID Resume a previously saved engine session
+  --format, -f json        Output ExternalCLIAdapter-compatible JSONL (default: json)
+  --dir DIR                Working directory for file and shell tools
+  --model MODEL            Override chat model for this invocation
+  --resume-session ID      Resume a previously saved engine session
+  --system-prompt TEXT     Override the default coding agent system prompt
+  --no-system-prompt       Disable the default system prompt entirely
 
 Examples:
   goz run --format json "Summarize this repo and report STAGE_RESULT."
   goz run --dir /tmp/project --model glm-5 "Run pytest and explain failures."
   goz run --resume-session abc123 "Continue with the next step."
+  goz run --system-prompt 'You are a helpful assistant.' "Hello"
+  goz run --no-system-prompt "Just chat with me"
 """)
         return
 
@@ -410,6 +428,14 @@ Examples:
     parser.add_argument("--model", help="Override chat model")
     parser.add_argument(
         "--resume-session", dest="resume_session_id", help="Resume a saved session by ID"
+    )
+    parser.add_argument(
+        "--system-prompt", dest="system_prompt", default=None,
+        help="Override the default coding agent system prompt",
+    )
+    parser.add_argument(
+        "--no-system-prompt", dest="no_system_prompt", action="store_true",
+        help="Disable the default system prompt entirely",
     )
     parser.add_argument("prompt", nargs="*", help="Prompt to execute")
     parsed = parser.parse_args(args)
@@ -428,11 +454,19 @@ Examples:
         if parsed.working_dir and not Path(working_dir).is_dir():
             raise NotADirectoryError(f"Working directory is not a directory: {working_dir}")
 
+        # Resolve system prompt: --no-system-prompt wins, then --system-prompt, then default
+        system_prompt: str | None = None
+        if parsed.no_system_prompt:
+            system_prompt = ""
+        elif parsed.system_prompt is not None:
+            system_prompt = parsed.system_prompt
+
         exit_code = await run_prompt_jsonl(
             " ".join(parsed.prompt),
             config=config,
             working_dir=working_dir,
             resume_session_id=parsed.resume_session_id,
+            system_prompt=system_prompt,
         )
     except Exception as exc:
         emit_error_event(type(exc).__name__, str(exc), sys.stdout)

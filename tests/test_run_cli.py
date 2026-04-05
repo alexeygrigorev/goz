@@ -19,7 +19,7 @@ from goz.agent.chat_client import (
     MessageStart,
     MessageStop,
 )
-from goz.cli.run import build_default_tool_registry, run_prompt_jsonl
+from goz.cli.run import DEFAULT_SYSTEM_PROMPT, build_default_tool_registry, run_prompt_jsonl
 from goz.config import Config
 
 
@@ -273,6 +273,88 @@ class TestRunPromptJsonl:
         assert registry.get("create_file").working_dir == str(tmp_path)
         assert registry.get("str_replace_editor").working_dir == str(tmp_path)
 
+    @pytest.mark.asyncio
+    async def test_default_system_prompt_used_when_none_provided(self, config, tmp_path):
+        stream = [
+            MessageStart(id="msg_1", model="test-model"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        stdout = io.StringIO()
+        chat_client = FakeChatClient([stream], config=config)
+
+        await run_prompt_jsonl(
+            "test prompt",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=chat_client,
+        )
+
+        assert chat_client.calls[0]["system"] == DEFAULT_SYSTEM_PROMPT
+
+    @pytest.mark.asyncio
+    async def test_custom_system_prompt_overrides_default(self, config, tmp_path):
+        stream = [
+            MessageStart(id="msg_1", model="test-model"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        stdout = io.StringIO()
+        chat_client = FakeChatClient([stream], config=config)
+
+        await run_prompt_jsonl(
+            "test prompt",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=chat_client,
+            system_prompt="Custom system prompt here",
+        )
+
+        assert chat_client.calls[0]["system"] == "Custom system prompt here"
+
+    @pytest.mark.asyncio
+    async def test_empty_system_prompt_disables_default(self, config, tmp_path):
+        stream = [
+            MessageStart(id="msg_1", model="test-model"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        stdout = io.StringIO()
+        chat_client = FakeChatClient([stream], config=config)
+
+        await run_prompt_jsonl(
+            "test prompt",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=chat_client,
+            system_prompt="",
+        )
+
+        # run_prompt_jsonl passes system="" to chat_completion;
+        # the real client would skip adding it to params (empty string is falsy)
+        assert chat_client.calls[0].get("system") == ""
+
 
 class TestRunCli:
     def test_goz_run_cli_supports_model_override_and_json_output(self, config, capsys):
@@ -288,11 +370,13 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
+            system_prompt=None,
         ):
             observed["prompt"] = prompt
             observed["model"] = config.chat_model
             observed["working_dir"] = working_dir
             observed["resume_session_id"] = resume_session_id
+            observed["system_prompt"] = system_prompt
             print(json.dumps({"type": "text", "part": {"text": "ok"}}))
             print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "session-1", "continuation": {"resume_session_id": "session-1"}}}))
             return 0
@@ -312,6 +396,7 @@ class TestRunCli:
             "model": "override-model",
             "working_dir": str(Path(".").resolve()),
             "resume_session_id": None,
+            "system_prompt": None,
         }
 
     def test_goz_run_cli_supports_resume_session_without_prompt(self, config, capsys):
@@ -327,9 +412,11 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
+            system_prompt=None,
         ):
             observed["prompt"] = prompt
             observed["resume_session_id"] = resume_session_id
+            observed["system_prompt"] = system_prompt
             print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": resume_session_id, "continuation": {"resume_session_id": resume_session_id}}}))
             return 0
 
@@ -345,7 +432,62 @@ class TestRunCli:
         assert observed == {
             "prompt": "",
             "resume_session_id": "resume-123",
+            "system_prompt": None,
         }
+
+    def test_goz_run_cli_passes_system_prompt_flag(self, config, capsys):
+        observed = {}
+
+        async def fake_run(
+            prompt,
+            *,
+            config,
+            working_dir,
+            stdout=None,
+            tool_registry=None,
+            chat_client=None,
+            resume_session_id=None,
+            session_dir=None,
+            system_prompt=None,
+        ):
+            observed["system_prompt"] = system_prompt
+            print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
+            return 0
+
+        with patch("goz.cli.run.load_config", return_value=config), patch("goz.cli.run.run_prompt_jsonl", side_effect=fake_run):
+            from goz.__main__ import main
+
+            sys.argv = ["goz", "run", "--format", "json", "--system-prompt", "Custom prompt", "hello"]
+            main()
+
+        assert observed["system_prompt"] == "Custom prompt"
+
+    def test_goz_run_cli_no_system_prompt_flag(self, config, capsys):
+        observed = {}
+
+        async def fake_run(
+            prompt,
+            *,
+            config,
+            working_dir,
+            stdout=None,
+            tool_registry=None,
+            chat_client=None,
+            resume_session_id=None,
+            session_dir=None,
+            system_prompt=None,
+        ):
+            observed["system_prompt"] = system_prompt
+            print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
+            return 0
+
+        with patch("goz.cli.run.load_config", return_value=config), patch("goz.cli.run.run_prompt_jsonl", side_effect=fake_run):
+            from goz.__main__ import main
+
+            sys.argv = ["goz", "run", "--format", "json", "--no-system-prompt", "hello"]
+            main()
+
+        assert observed["system_prompt"] == ""
 
     def test_goz_run_cli_emits_error_and_nonzero_exit(self, config, capsys):
         with patch("goz.cli.run.load_config", return_value=config), patch(
