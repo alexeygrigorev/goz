@@ -5,13 +5,15 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import signal
 import sys
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, AsyncIterator, TextIO
 
 from goz.agent.chat_client import (
     ChatClient,
@@ -20,7 +22,6 @@ from goz.agent.chat_client import (
     ContentBlockStart,
     ContentBlockStop,
     MessageStart,
-    MessageStop,
     UsageDelta,
 )
 from goz.agent.history import ChatHistory, ChatMessage, ToolCall
@@ -41,11 +42,171 @@ from goz.agent.tools import (
     ToolRegistry,
     ViewFileTool,
 )
+from goz.api.errors import TimeoutError as ApiTimeoutError
 from goz.config import Config, load_config
 
+logger = logging.getLogger(__name__)
 
 MAX_ITERATIONS: int | None = None  # No limit by default
 DEFAULT_AGENT_TYPE = "engine"
+
+AUTO_MODEL = "auto"
+
+DEFAULT_FALLBACK_CHAIN: list[str] = [
+    "glm-5.1",
+    "glm-5",
+    "glm-5-turbo",
+]
+
+DEFAULT_MODEL_TIMEOUT: int = 60  # seconds per model attempt
+
+
+@dataclass
+class ModelFallbackEvent:
+    """Record of a model fallback that occurred during auto-selection."""
+
+    from_model: str
+    to_model: str
+    elapsed_seconds: float
+
+
+class FallingBackChatClient:
+    """Wraps ChatClient to provide timeout-based fallback through a model chain.
+
+    On the first ``chat_completion`` call, the wrapper tries models in the
+    chain. If a model times out (no first chunk within *per_model_timeout*
+    seconds), it moves to the next model.  Once a model responds, it is
+    pinned for all subsequent calls in the session.  Non-timeout errors
+    are propagated immediately.
+
+    Fallback events are recorded in ``fallback_events`` for JSONL emission.
+    """
+
+    def __init__(
+        self,
+        config: Config,
+        chain: list[str] | None = None,
+        per_model_timeout: int = DEFAULT_MODEL_TIMEOUT,
+    ) -> None:
+        self.config = config
+        self.chain = chain or list(DEFAULT_FALLBACK_CHAIN)
+        self.per_model_timeout = per_model_timeout
+        self._clients: dict[str, ChatClient] = {}
+        self._pinned_model: str | None = None
+        self.fallback_events: list[ModelFallbackEvent] = []
+
+    def _get_client(self, model: str) -> ChatClient:
+        if model not in self._clients:
+            cfg = self.config.model_copy(update={"chat_model": model})
+            self._clients[model] = ChatClient(config=cfg)
+        return self._clients[model]
+
+    async def chat_completion(
+        self,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        tool_choice: str | dict = "auto",
+        stream: bool = True,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        system: str | None = None,
+    ) -> AsyncIterator[Chunk]:
+        # If a model has already been pinned, use it directly.
+        if self._pinned_model is not None:
+            client = self._get_client(self._pinned_model)
+            async for chunk in client.chat_completion(
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
+                stream=stream,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                system=system,
+            ):
+                yield chunk
+            return
+
+        last_error: Exception | None = None
+        for model in self.chain:
+            client = self._get_client(model)
+            start_time = time.monotonic()
+            try:
+                stream_iter = client.chat_completion(
+                    messages=messages,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                    stream=stream,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    system=system,
+                )
+                # Wrap the stream so we can detect timeouts on first-chunk latency.
+                first_chunk_received = asyncio.Event()
+
+                async def _wrapped() -> AsyncIterator[Chunk]:
+                    async for chunk in stream_iter:
+                        first_chunk_received.set()
+                        yield chunk
+
+                wrapped_iter = _wrapped()
+
+                # Wait for the first chunk with a timeout.
+                try:
+                    first_chunk = await asyncio.wait_for(
+                        wrapped_iter.__anext__(), timeout=self.per_model_timeout
+                    )
+                except (StopAsyncIteration, asyncio.TimeoutError):
+                    if not first_chunk_received.is_set():
+                        elapsed = time.monotonic() - start_time
+                        logger.warning(
+                            "Model %s timed out waiting for first chunk (%ds), trying next",
+                            model,
+                            self.per_model_timeout,
+                        )
+                        self.fallback_events.append(
+                            ModelFallbackEvent(
+                                from_model=model,
+                                to_model=self.chain[self.chain.index(model) + 1]
+                                if self.chain.index(model) + 1 < len(self.chain)
+                                else "none",
+                                elapsed_seconds=round(elapsed, 2),
+                            )
+                        )
+                        last_error = ApiTimeoutError(
+                            timeoutMs=self.per_model_timeout * 1000
+                        )
+                        continue
+                    return  # empty stream, nothing to yield
+
+                # First chunk received in time — pin this model for the session.
+                self._pinned_model = model
+                yield first_chunk
+                async for chunk in wrapped_iter:
+                    yield chunk
+                return  # success
+
+            except ApiTimeoutError:
+                elapsed = time.monotonic() - start_time
+                logger.warning(
+                    "Model %s timed out, trying next model in chain", model
+                )
+                self.fallback_events.append(
+                    ModelFallbackEvent(
+                        from_model=model,
+                        to_model=self.chain[self.chain.index(model) + 1]
+                        if self.chain.index(model) + 1 < len(self.chain)
+                        else "none",
+                        elapsed_seconds=round(elapsed, 2),
+                    )
+                )
+                last_error = ApiTimeoutError(timeoutMs=self.per_model_timeout * 1000)
+                continue
+            except Exception:
+                raise  # non-timeout errors propagate immediately
+
+        # All models exhausted
+        raise last_error or ApiTimeoutError(timeoutMs=self.per_model_timeout * 1000)
+
 
 DEFAULT_SYSTEM_PROMPT = """\
 You are a coding agent. You complete software engineering tasks by using tools to read, write, search, and run commands. Act autonomously — do not ask permission or wait for confirmation.
@@ -132,6 +293,26 @@ def emit_error_event(name: str, message: str, stdout: TextIO) -> None:
             "error": {
                 "name": name,
                 "data": {"message": message},
+            },
+        },
+        stdout,
+    )
+
+
+def emit_model_fallback_event(
+    stdout: TextIO,
+    *,
+    from_model: str,
+    to_model: str,
+    elapsed_seconds: float,
+) -> None:
+    _emit_event(
+        {
+            "type": "model_fallback",
+            "part": {
+                "from_model": from_model,
+                "to_model": to_model,
+                "elapsed_seconds": elapsed_seconds,
             },
         },
         stdout,
@@ -278,7 +459,7 @@ async def run_prompt_jsonl(
     working_dir: str,
     stdout: TextIO | None = None,
     tool_registry: ToolRegistry | None = None,
-    chat_client: ChatClient | None = None,
+    chat_client: ChatClient | FallingBackChatClient | None = None,
     resume_session_id: str | None = None,
     session_dir: Path | None = None,
     system_prompt: str | None = None,
@@ -372,6 +553,17 @@ async def run_prompt_jsonl(
                     usage_obj = type("U", (), {"output_tokens": chunk.output_tokens})()
                     usage_acc.apply_message_delta(usage_obj)
 
+            # Emit any model_fallback events that occurred during this turn.
+            if isinstance(client, FallingBackChatClient):
+                for evt in client.fallback_events:
+                    emit_model_fallback_event(
+                        stdout,
+                        from_model=evt.from_model,
+                        to_model=evt.to_model,
+                        elapsed_seconds=evt.elapsed_seconds,
+                    )
+                client.fallback_events.clear()
+
             snap = usage_acc.finalise_turn()
 
             tool_calls = _parse_tool_calls(chunks)
@@ -437,7 +629,9 @@ async def cmd_run(args: list[str]) -> None:
 Options:
   --format, -f json        Output ExternalCLIAdapter-compatible JSONL (default: json)
   --dir DIR                Working directory for file and shell tools
-  --model MODEL            Override chat model for this invocation
+  --model MODEL            Override chat model (use 'auto' for timeout-based fallback)
+  --model-chain MODELS     Comma-separated model chain for --model auto (default: glm-5.1,glm-5,glm-5-turbo)
+  --model-timeout SECS     Per-model timeout in seconds when using --model auto (default: 60)
   --resume-session ID      Resume a previously saved engine session
   --system-prompt TEXT     Override the default coding agent system prompt
   --no-system-prompt       Disable the default system prompt entirely
@@ -445,6 +639,9 @@ Options:
 Examples:
   goz run --format json "Summarize this repo."
   goz run --dir /tmp/project --model glm-5 "Run pytest and explain failures."
+  goz run --model auto "Fix the failing test."
+  goz run --model auto --model-timeout 30 "Quick task with aggressive fallback."
+  goz run --model auto --model-chain "glm-5.1,glm-4-long,glm-4-flash" "Custom chain."
   goz run --resume-session abc123 "Continue with the next step."
   goz run --system-prompt 'You are a helpful assistant.' "Hello"
   goz run --no-system-prompt "Just chat with me"
@@ -454,7 +651,15 @@ Examples:
     parser = argparse.ArgumentParser(prog="goz run", add_help=False)
     parser.add_argument("--format", "-f", choices=["json"], default="json", help="Output format")
     parser.add_argument("--dir", dest="working_dir", help="Working directory for the run")
-    parser.add_argument("--model", help="Override chat model")
+    parser.add_argument("--model", help="Override chat model (use 'auto' for timeout-based fallback)")
+    parser.add_argument(
+        "--model-chain", dest="model_chain",
+        help="Comma-separated model chain for --model auto (default: glm-5.1,glm-5,glm-5-turbo)",
+    )
+    parser.add_argument(
+        "--model-timeout", dest="model_timeout", type=int, default=DEFAULT_MODEL_TIMEOUT,
+        help=f"Per-model timeout in seconds for --model auto (default: {DEFAULT_MODEL_TIMEOUT})",
+    )
     parser.add_argument(
         "--resume-session", dest="resume_session_id", help="Resume a saved session by ID"
     )
@@ -474,7 +679,8 @@ Examples:
 
     try:
         config = load_config()
-        if parsed.model:
+        use_auto_model = parsed.model and parsed.model.lower() == AUTO_MODEL
+        if parsed.model and not use_auto_model:
             config = config.model_copy(update={"chat_model": parsed.model})
 
         working_dir = str(Path(parsed.working_dir or ".").resolve())
@@ -490,12 +696,24 @@ Examples:
         elif parsed.system_prompt is not None:
             system_prompt = parsed.system_prompt
 
+        chat_client: ChatClient | FallingBackChatClient | None = None
+        if use_auto_model:
+            chain: list[str] | None = None
+            if parsed.model_chain:
+                chain = [m.strip() for m in parsed.model_chain.split(",") if m.strip()]
+            chat_client = FallingBackChatClient(
+                config=config,
+                chain=chain,
+                per_model_timeout=parsed.model_timeout,
+            )
+
         exit_code = await run_prompt_jsonl(
             " ".join(parsed.prompt),
             config=config,
             working_dir=working_dir,
             resume_session_id=parsed.resume_session_id,
             system_prompt=system_prompt,
+            chat_client=chat_client,
         )
     except Exception as exc:
         emit_error_event(type(exc).__name__, str(exc), sys.stdout)

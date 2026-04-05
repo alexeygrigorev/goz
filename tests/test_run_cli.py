@@ -19,7 +19,16 @@ from goz.agent.chat_client import (
     MessageStart,
     MessageStop,
 )
-from goz.cli.run import DEFAULT_SYSTEM_PROMPT, build_default_tool_registry, run_prompt_jsonl
+from goz.api.errors import TimeoutError as ApiTimeoutError
+from goz.cli.run import (
+    AUTO_MODEL,
+    DEFAULT_FALLBACK_CHAIN,
+    DEFAULT_MODEL_TIMEOUT,
+    DEFAULT_SYSTEM_PROMPT,
+    FallingBackChatClient,
+    build_default_tool_registry,
+    run_prompt_jsonl,
+)
 from goz.config import Config
 
 
@@ -94,7 +103,6 @@ class TestRunPromptJsonl:
             "session_id": events[-1]["part"]["session_id"],
             "continuation": {"resume_session_id": events[-1]["part"]["session_id"]},
         }
-        combined_text = "".join(event["part"]["text"] for event in events if event["type"] == "text")
         assert chat_client.calls[0]["tools"]
 
     @pytest.mark.asyncio
@@ -324,6 +332,64 @@ class TestRunPromptJsonl:
         assert chat_client.calls[0]["system"] == "Custom system prompt here"
 
     @pytest.mark.asyncio
+    async def test_model_fallback_event_emitted_in_run_prompt_jsonl(self, config, tmp_path):
+        """run_prompt_jsonl emits model_fallback events when the client falls back."""
+        good_chunks = [
+            MessageStart(id="msg_2", model="glm-4-long"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                if self.model == "glm-5-turbo":
+                    async def slow():
+                        await asyncio.sleep(100)
+                        yield
+                    return slow()
+                else:
+                    async def iterator():
+                        for chunk in good_chunks:
+                            yield chunk
+                    return iterator()
+
+        from goz.cli.run import FallingBackChatClient
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=1,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        stdout = io.StringIO()
+        exit_code = await run_prompt_jsonl(
+            "Fallback test",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=fb,
+        )
+
+        assert exit_code == 0
+        events = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        event_types = [event["type"] for event in events]
+        assert "model_fallback" in event_types
+        fb_event = next(e for e in events if e["type"] == "model_fallback")
+        assert fb_event["part"]["from_model"] == "glm-5-turbo"
+        assert fb_event["part"]["to_model"] == "glm-4-long"
+        assert fb_event["part"]["elapsed_seconds"] >= 0.9
+
+    @pytest.mark.asyncio
     async def test_empty_system_prompt_disables_default(self, config, tmp_path):
         stream = [
             MessageStart(id="msg_1", model="test-model"),
@@ -486,6 +552,102 @@ class TestRunCli:
 
         assert observed["system_prompt"] == ""
 
+    def test_goz_run_cli_creates_fallback_client_with_model_auto(self, config, capsys):
+        """When --model auto is passed, a FallingBackChatClient is created."""
+        from goz.cli.run import FallingBackChatClient
+
+        observed = {}
+
+        async def fake_run(
+            prompt,
+            *,
+            config,
+            working_dir,
+            stdout=None,
+            tool_registry=None,
+            chat_client=None,
+            resume_session_id=None,
+            session_dir=None,
+            system_prompt=None,
+        ):
+            observed["chat_client_type"] = type(chat_client).__name__
+            assert isinstance(chat_client, FallingBackChatClient)
+            observed["per_model_timeout"] = chat_client.per_model_timeout
+            print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
+            return 0
+
+        with patch("goz.cli.run.load_config", return_value=config), patch("goz.cli.run.run_prompt_jsonl", side_effect=fake_run):
+            from goz.__main__ import main
+
+            sys.argv = ["goz", "run", "--format", "json", "--model", "auto", "--model-timeout", "30", "hello"]
+            main()
+
+        assert observed["chat_client_type"] == "FallingBackChatClient"
+        assert observed["per_model_timeout"] == 30
+
+    def test_goz_run_cli_model_chain_flag(self, config, capsys):
+        """--model-chain customises the fallback chain when using --model auto."""
+        from goz.cli.run import FallingBackChatClient
+
+        observed = {}
+
+        async def fake_run(
+            prompt,
+            *,
+            config,
+            working_dir,
+            stdout=None,
+            tool_registry=None,
+            chat_client=None,
+            resume_session_id=None,
+            session_dir=None,
+            system_prompt=None,
+        ):
+            observed["chat_client_type"] = type(chat_client).__name__
+            assert isinstance(chat_client, FallingBackChatClient)
+            observed["chain"] = chat_client.chain
+            print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
+            return 0
+
+        with patch("goz.cli.run.load_config", return_value=config), patch("goz.cli.run.run_prompt_jsonl", side_effect=fake_run):
+            from goz.__main__ import main
+
+            sys.argv = ["goz", "run", "--format", "json", "--model", "auto", "--model-chain", "glm-5.1,glm-4-long,glm-4-flash", "hello"]
+            main()
+
+        assert observed["chat_client_type"] == "FallingBackChatClient"
+        assert observed["chain"] == ["glm-5.1", "glm-4-long", "glm-4-flash"]
+
+    def test_goz_run_cli_does_not_create_fallback_client_with_explicit_model(self, config, capsys):
+        """When an explicit model is passed, no FallingBackChatClient is created."""
+        observed = {}
+
+        async def fake_run(
+            prompt,
+            *,
+            config,
+            working_dir,
+            stdout=None,
+            tool_registry=None,
+            chat_client=None,
+            resume_session_id=None,
+            session_dir=None,
+            system_prompt=None,
+        ):
+            observed["chat_client"] = chat_client
+            observed["model"] = config.chat_model
+            print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
+            return 0
+
+        with patch("goz.cli.run.load_config", return_value=config), patch("goz.cli.run.run_prompt_jsonl", side_effect=fake_run):
+            from goz.__main__ import main
+
+            sys.argv = ["goz", "run", "--format", "json", "--model", "glm-4-flash", "hello"]
+            main()
+
+        assert observed["chat_client"] is None
+        assert observed["model"] == "glm-4-flash"
+
     def test_goz_run_cli_emits_error_and_nonzero_exit(self, config, capsys):
         with patch("goz.cli.run.load_config", return_value=config), patch(
             "goz.cli.run.run_prompt_jsonl",
@@ -507,3 +669,390 @@ class TestRunCli:
                 "data": {"message": "bad run"},
             },
         }
+
+
+class TestFallingBackChatClient:
+    """Tests for the FallingBackChatClient timeout-based model fallback."""
+
+    def _make_config(self) -> Config:
+        return Config(
+            zai_token="test-token",
+            zai_base_url="https://api.test.com",
+            chat_model="test-model",
+            timeout=60,
+        )
+
+    @pytest.mark.asyncio
+    async def test_first_model_succeeds_no_fallback(self):
+        """When the first model responds in time, no fallback occurs."""
+        config = self._make_config()
+        stream_chunks = [
+            MessageStart(id="msg_1", model="glm-5-turbo"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="Hello"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        call_log: list[str] = []
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                call_log.append(self.model)
+                async def iterator():
+                    for chunk in stream_chunks:
+                        yield chunk
+                return iterator()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=5,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        chunks = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+            chunks.append(chunk)
+
+        assert call_log == ["glm-5-turbo"]
+        assert len(chunks) == len(stream_chunks)
+
+    @pytest.mark.asyncio
+    async def test_timeout_on_first_model_falls_back_to_second(self):
+        """When the first model times out, the second model is tried."""
+        config = self._make_config()
+        good_chunks = [
+            MessageStart(id="msg_2", model="glm-4-long"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="Fallback"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        call_log: list[str] = []
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                call_log.append(self.model)
+                if self.model == "glm-5-turbo":
+                    # Simulate timeout: never yield anything
+                    async def slow():
+                        await asyncio.sleep(100)
+                        yield
+                    return slow()
+                else:
+                    async def iterator():
+                        for chunk in good_chunks:
+                            yield chunk
+                    return iterator()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=1,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        chunks = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+            chunks.append(chunk)
+
+        assert call_log == ["glm-5-turbo", "glm-4-long"]
+        assert len(chunks) == len(good_chunks)
+
+    @pytest.mark.asyncio
+    async def test_all_models_timeout_raises_error(self):
+        """When all models time out, an ApiTimeoutError is raised."""
+        config = self._make_config()
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                async def slow():
+                    await asyncio.sleep(100)
+                    yield
+                return slow()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long", "glm-4-flash"],
+            per_model_timeout=1,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        with pytest.raises(ApiTimeoutError):
+            async for _ in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+                pass
+
+    @pytest.mark.asyncio
+    async def test_non_timeout_error_propagates_immediately(self):
+        """Non-timeout errors from the first model propagate without fallback."""
+        config = self._make_config()
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                async def failing():
+                    raise RuntimeError("auth failure")
+                    yield
+                return failing()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=5,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        with pytest.raises(RuntimeError, match="auth failure"):
+            async for _ in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+                pass
+
+    @pytest.mark.asyncio
+    async def test_second_model_also_times_out_tries_third(self):
+        """When the first two models time out, the third is tried and succeeds."""
+        config = self._make_config()
+        good_chunks = [
+            MessageStart(id="msg_3", model="glm-4-flash"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="Third time lucky"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        call_log: list[str] = []
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                call_log.append(self.model)
+                if self.model == "glm-4-flash":
+                    async def iterator():
+                        for chunk in good_chunks:
+                            yield chunk
+                    return iterator()
+                else:
+                    async def slow():
+                        await asyncio.sleep(100)
+                        yield
+                    return slow()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long", "glm-4-flash"],
+            per_model_timeout=1,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        chunks = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+            chunks.append(chunk)
+
+        assert call_log == ["glm-5-turbo", "glm-4-long", "glm-4-flash"]
+        assert len(chunks) == len(good_chunks)
+
+    def test_default_fallback_chain_constants(self):
+        """Verify the default constants are sensible."""
+        assert AUTO_MODEL == "auto"
+        assert len(DEFAULT_FALLBACK_CHAIN) == 3
+        assert DEFAULT_MODEL_TIMEOUT == 60
+        assert all(isinstance(m, str) for m in DEFAULT_FALLBACK_CHAIN)
+
+    @pytest.mark.asyncio
+    async def test_fallback_records_event_on_timeout(self):
+        """A ModelFallbackEvent is recorded when the first model times out."""
+        config = self._make_config()
+        good_chunks = [
+            MessageStart(id="msg_2", model="glm-4-long"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="Fallback"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                if self.model == "glm-5-turbo":
+                    async def slow():
+                        await asyncio.sleep(100)
+                        yield
+                    return slow()
+                else:
+                    async def iterator():
+                        for chunk in good_chunks:
+                            yield chunk
+                    return iterator()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=1,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        chunks = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+            chunks.append(chunk)
+
+        assert len(fb.fallback_events) == 1
+        evt = fb.fallback_events[0]
+        assert evt.from_model == "glm-5-turbo"
+        assert evt.to_model == "glm-4-long"
+        assert evt.elapsed_seconds >= 0.9
+
+    @pytest.mark.asyncio
+    async def test_no_fallback_event_when_first_model_succeeds(self):
+        """No ModelFallbackEvent is recorded when the first model responds."""
+        config = self._make_config()
+        stream_chunks = [
+            MessageStart(id="msg_1", model="glm-5-turbo"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="Hello"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                async def iterator():
+                    for chunk in stream_chunks:
+                        yield chunk
+                return iterator()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=5,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        chunks = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+            chunks.append(chunk)
+
+        assert len(fb.fallback_events) == 0
+
+    @pytest.mark.asyncio
+    async def test_pinned_model_used_for_subsequent_calls(self):
+        """Once a model responds, it is pinned and used for all remaining turns."""
+        config = self._make_config()
+        first_chunks = [
+            MessageStart(id="msg_1", model="glm-5-turbo"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="First"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        second_chunks = [
+            MessageStart(id="msg_2", model="glm-5-turbo"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="Second"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        call_log: list[str] = []
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                call_log.append(self.model)
+                chunks = first_chunks if len(call_log) == 1 else second_chunks
+                async def iterator():
+                    for chunk in chunks:
+                        yield chunk
+                return iterator()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=5,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        # First call
+        chunks1 = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+            chunks1.append(chunk)
+        assert call_log == ["glm-5-turbo"]
+        assert fb._pinned_model == "glm-5-turbo"
+
+        # Second call should reuse the pinned model
+        chunks2 = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi again"}]):
+            chunks2.append(chunk)
+        assert call_log == ["glm-5-turbo", "glm-5-turbo"]
+        assert len(chunks2) == len(second_chunks)
+
+    @pytest.mark.asyncio
+    async def test_fallback_pins_second_model_for_subsequent_calls(self):
+        """After falling back to the second model, it is pinned for remaining turns."""
+        config = self._make_config()
+        good_chunks = [
+            MessageStart(id="msg_2", model="glm-4-long"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(type="text_delta", index=0, text="Fallback"),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+
+        call_log: list[str] = []
+
+        class StubClient:
+            def __init__(self, model: str):
+                self.model = model
+
+            def chat_completion(self, **kwargs):
+                call_log.append(self.model)
+                if self.model == "glm-5-turbo":
+                    async def slow():
+                        await asyncio.sleep(100)
+                        yield
+                    return slow()
+                else:
+                    async def iterator():
+                        for chunk in good_chunks:
+                            yield chunk
+                    return iterator()
+
+        fb = FallingBackChatClient(
+            config=config,
+            chain=["glm-5-turbo", "glm-4-long"],
+            per_model_timeout=1,
+        )
+        fb._get_client = lambda m: StubClient(m)  # type: ignore[assignment]
+
+        # First call falls back from glm-5-turbo to glm-4-long
+        chunks1 = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi"}]):
+            chunks1.append(chunk)
+        assert call_log == ["glm-5-turbo", "glm-4-long"]
+        assert fb._pinned_model == "glm-4-long"
+
+        # Second call should use the pinned model directly
+        chunks2 = []
+        async for chunk in fb.chat_completion(messages=[{"role": "user", "content": "hi again"}]):
+            chunks2.append(chunk)
+        assert call_log == ["glm-5-turbo", "glm-4-long", "glm-4-long"]
+        assert len(chunks2) == len(good_chunks)
