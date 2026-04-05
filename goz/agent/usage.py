@@ -191,3 +191,44 @@ class UsageAccumulator:
             "total_tokens": self.total_tokens(),
             "turns": [t.to_dict() for t in self.turns],
         }
+
+
+@dataclass
+class TokenBudget:
+    """Tracks cumulative token usage against a budget.
+
+    Uses an existing UsageAccumulator to check input+output token totals
+    after each turn.  Emits warning at 80% and signals stop at 100%.
+
+    Attributes:
+        budget: Maximum total tokens allowed (input + output).
+        warning_threshold: Fraction of budget at which a warning is emitted (default 0.8).
+        warning_emitted: Whether the warning has already been emitted this session.
+        exceeded: Whether the budget has been exceeded.
+    """
+
+    budget: int
+    warning_threshold: float = 0.8
+    warning_emitted: bool = False
+    exceeded: bool = False
+
+    def check(self, acc: UsageAccumulator) -> tuple[bool, bool]:
+        """Check the accumulator against the budget.
+
+        Returns:
+            (should_warn, should_stop) tuple.  ``should_warn`` is True the
+            first time usage crosses the warning threshold.  ``should_stop``
+            is True once usage reaches or exceeds the budget.
+        """
+        total = acc.total_input_tokens + acc.total_output_tokens
+        should_warn = False
+        should_stop = False
+
+        if total >= self.budget:
+            self.exceeded = True
+            should_stop = True
+        elif not self.warning_emitted and total >= int(self.budget * self.warning_threshold):
+            self.warning_emitted = True
+            should_warn = True
+
+        return should_warn, should_stop

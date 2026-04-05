@@ -26,7 +26,7 @@ from goz.agent.chat_client import (
 )
 from goz.agent.history import ChatHistory, ChatMessage, ToolCall
 from goz.agent.sessions import Session, SessionManager
-from goz.agent.usage import UsageAccumulator
+from goz.agent.usage import TokenBudget, UsageAccumulator
 from goz.agent.tools import (
     BashTool,
     CreateFileTool,
@@ -390,6 +390,44 @@ def emit_model_fallback_event(
     )
 
 
+def emit_budget_warning_event(
+    stdout: TextIO,
+    *,
+    total_tokens: int,
+    budget: int,
+    threshold: float,
+) -> None:
+    _emit_event(
+        {
+            "type": "budget_warning",
+            "part": {
+                "total_tokens": total_tokens,
+                "budget": budget,
+                "threshold": threshold,
+            },
+        },
+        stdout,
+    )
+
+
+def emit_budget_exceeded_event(
+    stdout: TextIO,
+    *,
+    total_tokens: int,
+    budget: int,
+) -> None:
+    _emit_event(
+        {
+            "type": "budget_exceeded",
+            "part": {
+                "total_tokens": total_tokens,
+                "budget": budget,
+            },
+        },
+        stdout,
+    )
+
+
 def emit_step_finish_event(
     stdout: TextIO,
     session_id: str,
@@ -560,7 +598,11 @@ async def run_prompt_jsonl(
     resume_session_id: str | None = None,
     session_dir: Path | None = None,
     system_prompt: str | None = None,
+<<<<<<< Updated upstream
     no_context: bool = False,
+=======
+    max_tokens_budget: int | None = None,
+>>>>>>> Stashed changes
 ) -> int:
     """Execute one agent prompt and emit JSONL events."""
     stdout = stdout or sys.stdout
@@ -609,6 +651,7 @@ async def run_prompt_jsonl(
             continue
 
     iteration = 0
+    token_budget: TokenBudget | None = TokenBudget(max_tokens_budget) if max_tokens_budget is not None else None
     try:
         usage_acc = UsageAccumulator()
         while True:
@@ -700,6 +743,33 @@ async def run_prompt_jsonl(
 
             snap = usage_acc.finalise_turn()
 
+            # Token budget check
+            if token_budget is not None:
+                should_warn, should_stop = token_budget.check(usage_acc)
+                if should_warn:
+                    total = usage_acc.total_input_tokens + usage_acc.total_output_tokens
+                    emit_budget_warning_event(
+                        stdout,
+                        total_tokens=total,
+                        budget=token_budget.budget,
+                        threshold=token_budget.warning_threshold,
+                    )
+                if should_stop:
+                    total = usage_acc.total_input_tokens + usage_acc.total_output_tokens
+                    emit_budget_exceeded_event(
+                        stdout,
+                        total_tokens=total,
+                        budget=token_budget.budget,
+                    )
+                    history.add(ChatMessage(role="assistant", content="".join(assistant_chunks)))
+                    emit_step_finish_event(
+                        stdout,
+                        state.session_id,
+                        tokens=snap.to_dict(),
+                        cost=snap.cost_usd(model=config.chat_model),
+                    )
+                    return 0
+
             tool_calls = _parse_tool_calls(chunks)
             if not tool_calls:
                 history.add(ChatMessage(role="assistant", content="".join(assistant_chunks)))
@@ -785,7 +855,11 @@ Options:
   --resume-session ID      Resume a previously saved engine session
   --system-prompt TEXT     Override the default coding agent system prompt
   --no-system-prompt       Disable the default system prompt entirely
+<<<<<<< Updated upstream
   --no-context             Disable auto-loading of project context files
+=======
+  --max-tokens-budget N    Stop the agent loop after N cumulative tokens (input+output)
+>>>>>>> Stashed changes
 
 Examples:
   goz run --format json "Summarize this repo."
@@ -824,8 +898,13 @@ Examples:
         help="Disable the default system prompt entirely",
     )
     parser.add_argument(
+<<<<<<< Updated upstream
         "--no-context", dest="no_context", action="store_true",
         help="Disable auto-loading of project context files",
+=======
+        "--max-tokens-budget", dest="max_tokens_budget", type=int, default=None,
+        help="Stop the agent loop after N cumulative tokens (input+output)",
+>>>>>>> Stashed changes
     )
     parser.add_argument("prompt", nargs="*", help="Prompt to execute")
     parsed = parser.parse_args(args)
@@ -870,7 +949,11 @@ Examples:
             resume_session_id=parsed.resume_session_id,
             system_prompt=system_prompt,
             chat_client=chat_client,
+<<<<<<< Updated upstream
             no_context=parsed.no_context,
+=======
+            max_tokens_budget=parsed.max_tokens_budget,
+>>>>>>> Stashed changes
         )
     except Exception as exc:
         emit_error_event(type(exc).__name__, str(exc), sys.stdout)
