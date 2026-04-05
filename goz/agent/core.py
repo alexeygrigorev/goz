@@ -263,16 +263,22 @@ class AgentCore:
 
         return tool_calls
 
-    async def _execute_tool_call(self, tool_call: dict) -> str:
+    async def _execute_tool_call(
+        self,
+        tool_call: dict,
+        stream_callback=None,
+    ) -> str:
         """Execute a single tool call and return result.
 
         This handles:
         - Finding the tool by name
         - Executing with timeout
         - Catching and formatting errors
+        - Streaming bash output via callback
 
         Args:
             tool_call: Tool call dict with id, name, and input
+            stream_callback: Optional callback(line, source) for streaming output
 
         Returns:
             String result to send back to API
@@ -290,9 +296,12 @@ class AgentCore:
             return f"Tool '{tool_name}' not found. Available tools: {available}."
 
         try:
+            kwargs = dict(tool_call.get('input', {}))
+            if stream_callback is not None and tool_name == "bash":
+                kwargs["stream_callback"] = stream_callback
             # Execute with timeout (AC 7)
             result = await asyncio.wait_for(
-                tool.execute(**tool_call.get('input', {})),
+                tool.execute(**kwargs),
                 timeout=300,  # 5 minutes
             )
             return str(result)

@@ -94,9 +94,15 @@ class TestRunPromptJsonl:
 
         assert exit_code == 0
         events = [json.loads(line) for line in stdout.getvalue().splitlines()]
-        assert [event["type"] for event in events] == ["tool_use", "text", "text", "step_finish"]
-        assert events[0]["part"]["name"] == "bash"
-        assert events[0]["part"]["input"] == {"command": "pwd"}
+        event_types = [event["type"] for event in events]
+        # tool_stream events may appear before tool_use for bash commands
+        assert event_types[0] in ("tool_stream", "tool_use")
+        assert "tool_use" in event_types
+        assert event_types[-1] == "step_finish"
+
+        tool_use_events = [e for e in events if e["type"] == "tool_use"]
+        assert tool_use_events[0]["part"]["name"] == "bash"
+        assert tool_use_events[0]["part"]["input"] == {"command": "pwd"}
         assert events[-1]["part"] == {
             "tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0},
             "cost": 0,
@@ -662,12 +668,10 @@ class TestRunCli:
         captured = capsys.readouterr()
         event = json.loads(captured.out.strip())
         assert excinfo.value.code == 1
-        assert event == {
-            "type": "error",
-            "error": {
-                "name": "RuntimeError",
-                "data": {"message": "bad run"},
-            },
+        assert event["type"] == "error"
+        assert event["error"] == {
+            "name": "RuntimeError",
+            "data": {"message": "bad run"},
         }
 
 

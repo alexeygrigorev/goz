@@ -288,6 +288,27 @@ def emit_tool_use_event(
     )
 
 
+def emit_tool_stream_event(
+    tool_call_id: str,
+    tool_name: str,
+    line: str,
+    source: str,
+    stdout: TextIO,
+) -> None:
+    _emit_event(
+        {
+            "type": "tool_stream",
+            "part": {
+                "id": tool_call_id,
+                "name": tool_name,
+                "line": line,
+                "source": source,
+            },
+        },
+        stdout,
+    )
+
+
 def emit_error_event(name: str, message: str, stdout: TextIO) -> None:
     _emit_event(
         {
@@ -438,14 +459,29 @@ def _parse_tool_calls(chunks: list[Chunk]) -> list[dict[str, Any]]:
 
 
 async def _execute_tool_call(
-    tool_registry: ToolRegistry, tool_call: dict[str, Any]
+    tool_registry: ToolRegistry,
+    tool_call: dict[str, Any],
+    *,
+    stdout: TextIO | None = None,
 ) -> tuple[str, bool]:
     tool = tool_registry.get(tool_call["name"])
     if tool is None:
         return f"Tool not found: {tool_call['name']}", True
 
+    # Build streaming callback for bash tool when stdout is available
+    stream_callback = None
+    if stdout is not None and tool_call["name"] == "bash":
+        call_id = tool_call["id"]
+        tool_name = tool_call["name"]
+
+        def stream_callback(line: str, source: str) -> None:
+            emit_tool_stream_event(call_id, tool_name, line, source, stdout)
+
     try:
-        result = await asyncio.wait_for(tool.execute(**tool_call["input"]), timeout=300)
+        kwargs = dict(tool_call["input"])
+        if stream_callback is not None:
+            kwargs["stream_callback"] = stream_callback
+        result = await asyncio.wait_for(tool.execute(**kwargs), timeout=300)
     except asyncio.TimeoutError:
         return f"Tool {tool_call['name']} timed out after 300 seconds", True
     except Exception as exc:
@@ -600,7 +636,9 @@ async def run_prompt_jsonl(
             )
 
             for tool_call in tool_calls:
-                result, is_error = await _execute_tool_call(registry, tool_call)
+                result, is_error = await _execute_tool_call(
+                    registry, tool_call, stdout=stdout
+                )
                 emit_tool_use_event(tool_call, result, stdout, is_error=is_error)
                 history.add(
                     ChatMessage(

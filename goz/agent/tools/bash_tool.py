@@ -19,7 +19,7 @@ import shutil
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator
+from typing import AsyncIterator, Callable
 
 from goz.agent.tools.base import BaseTool, ToolExecutionError
 
@@ -132,6 +132,7 @@ class BashTool(BaseTool):
         command: str,
         cwd: str | None = None,
         timeout: int = 300,
+        stream_callback: Callable[[str, str], None] | None = None,
     ) -> BashResult:
         """Execute shell command.
 
@@ -139,6 +140,8 @@ class BashTool(BaseTool):
             command: Shell command to execute
             cwd: Working directory (uses working_dir if None)
             timeout: Timeout in seconds (default: 300)
+            stream_callback: Optional callback invoked with (line, source) as
+                output is produced. source is "stdout" or "stderr".
 
         Returns:
             BashResult with exit_code, stdout, stderr, and duration
@@ -178,7 +181,53 @@ class BashTool(BaseTool):
                 env=os.environ.copy(),
             )
 
-            # Wait for completion with timeout
+            if stream_callback is not None:
+                stdout_lines: list[str] = []
+                stderr_lines: list[str] = []
+
+                async def _read_stream(
+                    stream: asyncio.StreamReader | None,
+                    buf: list[str],
+                    source: str,
+                ) -> None:
+                    if stream is None:
+                        return
+                    while True:
+                        line_bytes = await stream.readline()
+                        if not line_bytes:
+                            break
+                        text = line_bytes.decode("utf-8", errors="replace")
+                        buf.append(text)
+                        stream_callback(text, source)
+
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(
+                            _read_stream(proc.stdout, stdout_lines, "stdout"),
+                            _read_stream(proc.stderr, stderr_lines, "stderr"),
+                            proc.wait(),
+                        ),
+                        timeout=timeout,
+                    )
+                except asyncio.TimeoutError:
+                    proc.kill()
+                    await proc.wait()
+                    duration = time.time() - start_time
+                    raise ToolExecutionError(
+                        f"Command timed out after {timeout}s: {command}"
+                    )
+
+                duration = time.time() - start_time
+                exit_code = proc.returncode or 0
+
+                return BashResult(
+                    exit_code=exit_code,
+                    stdout="".join(stdout_lines),
+                    stderr="".join(stderr_lines),
+                    duration=duration,
+                )
+
+            # No callback — use simple communicate() path
             try:
                 stdout_bytes, stderr_bytes = await asyncio.wait_for(
                     proc.communicate(),
@@ -226,6 +275,8 @@ class BashTool(BaseTool):
                 await proc_var.wait()
             raise asyncio.CancelledError()
         except Exception as e:
+            if isinstance(e, ToolExecutionError):
+                raise
             raise ToolExecutionError(f"Command execution failed: {e}")
 
     async def execute_stream(
