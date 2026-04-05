@@ -132,6 +132,10 @@ class TestAgentApp:
             app.exit.assert_not_called()
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(
+        not __import__("sys").stdin.isatty() or __import__("os").environ.get("CI") == "true",
+        reason="TUI tests require a terminal",
+    )
     async def test_save_session_clears_unsaved_changes(self, tmp_path):
         """Saving should mark the session as clean."""
         from goz.agent.tui.app import AgentApp
