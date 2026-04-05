@@ -675,6 +675,196 @@ class TestRunCli:
         }
 
 
+class TestParallelToolExecution:
+    """Tests for parallel execution of multiple tool calls via asyncio.gather."""
+
+    @pytest.fixture
+    def config(self) -> Config:
+        return Config(
+            zai_token="test-token",
+            zai_base_url="https://api.test.com",
+            chat_model="test-model",
+            timeout=60,
+        )
+
+    @pytest.mark.asyncio
+    async def test_multiple_tool_calls_execute_concurrently(self, config, tmp_path):
+        """Multiple tool calls in one response execute concurrently."""
+        import time
+
+        first_stream = [
+            MessageStart(id="msg_1", model="test-model"),
+            ContentBlockStart(type="tool_use", index=0, id="call_1", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=0, partial_json='{"command":"sleep 0.2"}'),
+            ContentBlockStop(index=0),
+            ContentBlockStart(type="tool_use", index=1, id="call_2", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=1, partial_json='{"command":"sleep 0.2"}'),
+            ContentBlockStop(index=1),
+            MessageStop(stop_reason="tool_use"),
+        ]
+        second_stream = [
+            MessageStart(id="msg_2", model="test-model"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        stdout = io.StringIO()
+        chat_client = FakeChatClient([first_stream, second_stream], config=config)
+
+        start = time.monotonic()
+        exit_code = await run_prompt_jsonl(
+            "Run two sleeps",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=chat_client,
+        )
+        elapsed = time.monotonic() - start
+
+        assert exit_code == 0
+        # If sequential, would be ~0.4s+. With parallel, should be ~0.2-0.3s.
+        assert elapsed < 0.35, f"Tools appear to have run sequentially ({elapsed:.2f}s)"
+
+        events = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        tool_use_events = [e for e in events if e["type"] == "tool_use"]
+        assert len(tool_use_events) == 2
+        assert tool_use_events[0]["part"]["id"] == "call_1"
+        assert tool_use_events[1]["part"]["id"] == "call_2"
+
+    @pytest.mark.asyncio
+    async def test_results_returned_in_same_order_as_tool_calls(self, config, tmp_path):
+        """Results are returned in the same order as the tool calls."""
+        first_stream = [
+            MessageStart(id="msg_1", model="test-model"),
+            ContentBlockStart(type="tool_use", index=0, id="call_a", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=0, partial_json='{"command":"echo first"}'),
+            ContentBlockStop(index=0),
+            ContentBlockStart(type="tool_use", index=1, id="call_b", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=1, partial_json='{"command":"echo second"}'),
+            ContentBlockStop(index=1),
+            ContentBlockStart(type="tool_use", index=2, id="call_c", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=2, partial_json='{"command":"echo third"}'),
+            ContentBlockStop(index=2),
+            MessageStop(stop_reason="tool_use"),
+        ]
+        second_stream = [
+            MessageStart(id="msg_2", model="test-model"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        stdout = io.StringIO()
+        chat_client = FakeChatClient([first_stream, second_stream], config=config)
+
+        exit_code = await run_prompt_jsonl(
+            "Run three echos",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=chat_client,
+        )
+
+        assert exit_code == 0
+        events = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        tool_use_events = [e for e in events if e["type"] == "tool_use"]
+        assert len(tool_use_events) == 3
+        assert tool_use_events[0]["part"]["id"] == "call_a"
+        assert tool_use_events[1]["part"]["id"] == "call_b"
+        assert tool_use_events[2]["part"]["id"] == "call_c"
+
+    @pytest.mark.asyncio
+    async def test_individual_tool_failure_doesnt_prevent_others(self, config, tmp_path):
+        """Individual tool failures don't prevent other tools from completing."""
+        first_stream = [
+            MessageStart(id="msg_1", model="test-model"),
+            ContentBlockStart(type="tool_use", index=0, id="call_ok", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=0, partial_json='{"command":"echo ok"}'),
+            ContentBlockStop(index=0),
+            ContentBlockStart(type="tool_use", index=1, id="call_bad", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=1, partial_json='{"command":"exit 1"}'),
+            ContentBlockStop(index=1),
+            MessageStop(stop_reason="tool_use"),
+        ]
+        second_stream = [
+            MessageStart(id="msg_2", model="test-model"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        stdout = io.StringIO()
+        chat_client = FakeChatClient([first_stream, second_stream], config=config)
+
+        exit_code = await run_prompt_jsonl(
+            "Run ok and fail",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=chat_client,
+        )
+
+        assert exit_code == 0
+        events = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        tool_use_events = [e for e in events if e["type"] == "tool_use"]
+        assert len(tool_use_events) == 2
+        # Both tools should have completed
+        assert tool_use_events[0]["part"]["id"] == "call_ok"
+        assert tool_use_events[1]["part"]["id"] == "call_bad"
+
+    @pytest.mark.asyncio
+    async def test_single_tool_call_behavior_unchanged(self, config, tmp_path):
+        """Single tool call behavior is unchanged from sequential execution."""
+        first_stream = [
+            MessageStart(id="msg_1", model="test-model"),
+            ContentBlockStart(type="tool_use", index=0, id="call_1", name="bash"),
+            ContentBlockDelta(type="input_json_delta", index=0, partial_json='{"command":"echo hello"}'),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="tool_use"),
+        ]
+        second_stream = [
+            MessageStart(id="msg_2", model="test-model"),
+            ContentBlockStart(type="text", index=0),
+            ContentBlockDelta(
+                type="text_delta",
+                index=0,
+                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+            ),
+            ContentBlockStop(index=0),
+            MessageStop(stop_reason="end_turn"),
+        ]
+        stdout = io.StringIO()
+        chat_client = FakeChatClient([first_stream, second_stream], config=config)
+
+        exit_code = await run_prompt_jsonl(
+            "Run echo",
+            config=config,
+            working_dir=str(tmp_path),
+            stdout=stdout,
+            chat_client=chat_client,
+        )
+
+        assert exit_code == 0
+        events = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        tool_use_events = [e for e in events if e["type"] == "tool_use"]
+        assert len(tool_use_events) == 1
+        assert tool_use_events[0]["part"]["name"] == "bash"
+        assert tool_use_events[0]["part"]["input"] == {"command": "echo hello"}
+
+
 class TestFallingBackChatClient:
     """Tests for the FallingBackChatClient timeout-based model fallback."""
 

@@ -635,16 +635,30 @@ async def run_prompt_jsonl(
                 )
             )
 
-            for tool_call in tool_calls:
-                result, is_error = await _execute_tool_call(
-                    registry, tool_call, stdout=stdout
-                )
-                emit_tool_use_event(tool_call, result, stdout, is_error=is_error)
+            # Execute tool calls concurrently and collect results in order
+            async def _run_one(tc: dict) -> tuple[dict, str, bool]:
+                res, err = await _execute_tool_call(registry, tc, stdout=stdout)
+                return tc, res, err
+
+            raw_outcomes = await asyncio.gather(
+                *(_run_one(tc) for tc in tool_calls),
+                return_exceptions=True,
+            )
+            # Unwrap any unexpected exceptions from gather into error tuples
+            outcomes: list[tuple[dict, str, bool]] = []
+            for i, outcome in enumerate(raw_outcomes):
+                if isinstance(outcome, BaseException):
+                    tc = tool_calls[i]
+                    outcomes.append((tc, f"Tool {tc['name']} failed: {outcome}", True))
+                else:
+                    outcomes.append(outcome)
+            for tc, result, is_error in outcomes:
+                emit_tool_use_event(tc, result, stdout, is_error=is_error)
                 history.add(
                     ChatMessage(
                         role="tool",
                         content=result,
-                        tool_result_id=tool_call["id"],
+                        tool_result_id=tc["id"],
                     )
                 )
     except asyncio.CancelledError:
