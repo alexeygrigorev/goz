@@ -44,6 +44,7 @@ from goz.agent.tools import (
 )
 from goz.api.errors import TimeoutError as ApiTimeoutError
 from goz.config import Config, load_config
+from goz.context import load_project_context
 
 logger = logging.getLogger(__name__)
 
@@ -463,6 +464,7 @@ async def run_prompt_jsonl(
     resume_session_id: str | None = None,
     session_dir: Path | None = None,
     system_prompt: str | None = None,
+    no_context: bool = False,
 ) -> int:
     """Execute one agent prompt and emit JSONL events."""
     stdout = stdout or sys.stdout
@@ -522,6 +524,10 @@ async def run_prompt_jsonl(
             usage_acc.begin_turn()
 
             effective_system = system_prompt if system_prompt is not None else DEFAULT_SYSTEM_PROMPT
+            if effective_system == DEFAULT_SYSTEM_PROMPT and not no_context:
+                project_ctx = load_project_context(working_dir)
+                if project_ctx:
+                    effective_system = project_ctx + "\n\n" + effective_system
             stream = client.chat_completion(
                 messages=history.to_api_format(),
                 tools=registry.to_openai_schema(),
@@ -635,6 +641,7 @@ Options:
   --resume-session ID      Resume a previously saved engine session
   --system-prompt TEXT     Override the default coding agent system prompt
   --no-system-prompt       Disable the default system prompt entirely
+  --no-context             Disable auto-loading of project context files
 
 Examples:
   goz run --format json "Summarize this repo."
@@ -645,6 +652,7 @@ Examples:
   goz run --resume-session abc123 "Continue with the next step."
   goz run --system-prompt 'You are a helpful assistant.' "Hello"
   goz run --no-system-prompt "Just chat with me"
+  goz run --no-context "Skip project context loading"
 """)
         return
 
@@ -670,6 +678,10 @@ Examples:
     parser.add_argument(
         "--no-system-prompt", dest="no_system_prompt", action="store_true",
         help="Disable the default system prompt entirely",
+    )
+    parser.add_argument(
+        "--no-context", dest="no_context", action="store_true",
+        help="Disable auto-loading of project context files",
     )
     parser.add_argument("prompt", nargs="*", help="Prompt to execute")
     parsed = parser.parse_args(args)
@@ -714,6 +726,7 @@ Examples:
             resume_session_id=parsed.resume_session_id,
             system_prompt=system_prompt,
             chat_client=chat_client,
+            no_context=parsed.no_context,
         )
     except Exception as exc:
         emit_error_event(type(exc).__name__, str(exc), sys.stdout)
