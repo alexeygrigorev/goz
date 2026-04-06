@@ -305,7 +305,7 @@ You are a coding agent. You complete software engineering tasks by using tools t
 
 
 def _emit_event(event: dict[str, Any], stdout: TextIO) -> None:
-    event["timestamp"] = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+    event["timestamp"] = datetime.now(tz=__import__('datetime').timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
     stdout.write(json.dumps(event, ensure_ascii=True) + "\n")
     stdout.flush()
 
@@ -598,11 +598,8 @@ async def run_prompt_jsonl(
     resume_session_id: str | None = None,
     session_dir: Path | None = None,
     system_prompt: str | None = None,
-<<<<<<< Updated upstream
     no_context: bool = False,
-=======
     max_tokens_budget: int | None = None,
->>>>>>> Stashed changes
 ) -> int:
     """Execute one agent prompt and emit JSONL events."""
     stdout = stdout or sys.stdout
@@ -855,11 +852,8 @@ Options:
   --resume-session ID      Resume a previously saved engine session
   --system-prompt TEXT     Override the default coding agent system prompt
   --no-system-prompt       Disable the default system prompt entirely
-<<<<<<< Updated upstream
   --no-context             Disable auto-loading of project context files
-=======
   --max-tokens-budget N    Stop the agent loop after N cumulative tokens (input+output)
->>>>>>> Stashed changes
 
 Examples:
   goz run --format json "Summarize this repo."
@@ -898,13 +892,12 @@ Examples:
         help="Disable the default system prompt entirely",
     )
     parser.add_argument(
-<<<<<<< Updated upstream
         "--no-context", dest="no_context", action="store_true",
         help="Disable auto-loading of project context files",
-=======
+    )
+    parser.add_argument(
         "--max-tokens-budget", dest="max_tokens_budget", type=int, default=None,
         help="Stop the agent loop after N cumulative tokens (input+output)",
->>>>>>> Stashed changes
     )
     parser.add_argument("prompt", nargs="*", help="Prompt to execute")
     parsed = parser.parse_args(args)
@@ -949,11 +942,8 @@ Examples:
             resume_session_id=parsed.resume_session_id,
             system_prompt=system_prompt,
             chat_client=chat_client,
-<<<<<<< Updated upstream
             no_context=parsed.no_context,
-=======
             max_tokens_budget=parsed.max_tokens_budget,
->>>>>>> Stashed changes
         )
     except Exception as exc:
         emit_error_event(type(exc).__name__, str(exc), sys.stdout)

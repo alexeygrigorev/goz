@@ -228,7 +228,7 @@ class TestContextInSystemPrompt:
         async def fake_run(
             prompt, *, config, working_dir, stdout=None, tool_registry=None,
             chat_client=None, resume_session_id=None, session_dir=None,
-            system_prompt=None, no_context=False,
+            system_prompt=None, no_context=False, **kwargs,
         ):
             observed["no_context"] = no_context
             observed["system_prompt"] = system_prompt
@@ -251,7 +251,7 @@ class TestContextInSystemPrompt:
         async def fake_run(
             prompt, *, config, working_dir, stdout=None, tool_registry=None,
             chat_client=None, resume_session_id=None, session_dir=None,
-            system_prompt=None, no_context=False,
+            system_prompt=None, no_context=False, **kwargs,
         ):
             observed["no_context"] = no_context
             observed["system_prompt"] = system_prompt

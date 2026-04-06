@@ -439,12 +439,8 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
-<<<<<<< Updated upstream
             system_prompt=None, no_context=False,
-=======
-            system_prompt=None,
             max_tokens_budget=None,
->>>>>>> Stashed changes
         ):
             observed["prompt"] = prompt
             observed["model"] = config.chat_model
@@ -486,12 +482,8 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
-<<<<<<< Updated upstream
             system_prompt=None, no_context=False,
-=======
-            system_prompt=None,
             max_tokens_budget=None,
->>>>>>> Stashed changes
         ):
             observed["prompt"] = prompt
             observed["resume_session_id"] = resume_session_id
@@ -527,12 +519,8 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
-<<<<<<< Updated upstream
             system_prompt=None, no_context=False,
-=======
-            system_prompt=None,
             max_tokens_budget=None,
->>>>>>> Stashed changes
         ):
             observed["system_prompt"] = system_prompt
             print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
@@ -559,12 +547,8 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
-<<<<<<< Updated upstream
             system_prompt=None, no_context=False,
-=======
-            system_prompt=None,
             max_tokens_budget=None,
->>>>>>> Stashed changes
         ):
             observed["system_prompt"] = system_prompt
             print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
@@ -594,12 +578,8 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
-<<<<<<< Updated upstream
             system_prompt=None, no_context=False,
-=======
-            system_prompt=None,
             max_tokens_budget=None,
->>>>>>> Stashed changes
         ):
             observed["chat_client_type"] = type(chat_client).__name__
             assert isinstance(chat_client, FallingBackChatClient)
@@ -632,12 +612,8 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
-<<<<<<< Updated upstream
             system_prompt=None, no_context=False,
-=======
-            system_prompt=None,
             max_tokens_budget=None,
->>>>>>> Stashed changes
         ):
             observed["chat_client_type"] = type(chat_client).__name__
             assert isinstance(chat_client, FallingBackChatClient)
@@ -668,12 +644,8 @@ class TestRunCli:
             chat_client=None,
             resume_session_id=None,
             session_dir=None,
-<<<<<<< Updated upstream
             system_prompt=None, no_context=False,
-=======
-            system_prompt=None,
             max_tokens_budget=None,
->>>>>>> Stashed changes
         ):
             observed["chat_client"] = chat_client
             observed["model"] = config.chat_model

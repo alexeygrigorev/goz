@@ -353,6 +353,7 @@ class TestCliMaxTokensBudgetFlag:
             session_dir=None,
             system_prompt=None,
             max_tokens_budget=None,
+            **kwargs,
         ):
             observed["max_tokens_budget"] = max_tokens_budget
             print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
@@ -382,6 +383,7 @@ class TestCliMaxTokensBudgetFlag:
             session_dir=None,
             system_prompt=None,
             max_tokens_budget=None,
+            **kwargs,
         ):
             observed["max_tokens_budget"] = max_tokens_budget
             print(json.dumps({"type": "step_finish", "part": {"tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}, "cost": 0, "session_id": "s1", "continuation": {"resume_session_id": "s1"}}}))
