@@ -130,7 +130,7 @@ class TestContextInSystemPrompt:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -162,7 +162,7 @@ class TestContextInSystemPrompt:
                     ContentBlockDelta(
                         type="text_delta",
                         index=0,
-                        text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                        text="All done.\n",
                     ),
                     ContentBlockStop(index=0),
                     MessageStop(stop_reason="end_turn"),
@@ -200,7 +200,7 @@ class TestContextInSystemPrompt:
                         ContentBlockStart(type="text", index=0),
                         ContentBlockDelta(
                             type="text_delta", index=0,
-                            text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                            text="All done.\n",
                         ),
                         ContentBlockStop(index=0),
                         MessageStop(stop_reason="end_turn"),

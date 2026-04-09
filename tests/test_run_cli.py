@@ -76,7 +76,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -119,7 +119,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -158,7 +158,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"first","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="First response.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -169,7 +169,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"second","files_changed":[],"tests":{"added":0,"passing":2},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="Second response.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -292,7 +292,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -318,7 +318,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -346,7 +346,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -403,7 +403,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -715,7 +715,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -765,7 +765,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -808,7 +808,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -848,7 +848,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text='STAGE_RESULT:\n{"verdict":"pass","summary":"ok","files_changed":[],"tests":{"added":0,"passing":1},"warnings":[],"follow_up_tasks":[],"acceptance_criteria":[]}\n',
+                text="All done.\n",
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
