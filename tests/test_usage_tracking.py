@@ -224,6 +224,7 @@ class TestStepFinishWithUsage:
         assert event["part"]["tokens"] == tokens
         assert event["part"]["cost"] == 0.015
         assert event["part"]["session_id"] == "session-1"
+        assert event["part"]["continuation"] == {"resume_session_id": "session-1"}
 
     def test_emit_step_finish_defaults(self):
         stdout = io.StringIO()
@@ -236,6 +237,7 @@ class TestStepFinishWithUsage:
             "cache_read": 0,
         }
         assert event["part"]["cost"] == 0.0
+        assert event["part"]["continuation"] == {"resume_session_id": "session-2"}
 
 
 class TestRunPromptJsonlWithUsage:

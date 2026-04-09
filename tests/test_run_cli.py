@@ -31,6 +31,8 @@ from goz.cli.run import (
 )
 from goz.config import Config
 
+GENERIC_ASSISTANT_TEXT = "Completed the requested work.\n"
+
 
 @pytest.fixture
 def config() -> Config:
@@ -76,7 +78,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -119,7 +121,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -292,7 +294,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -318,7 +320,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -346,7 +348,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -403,7 +405,7 @@ class TestRunPromptJsonl:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -715,7 +717,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -765,7 +767,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -808,7 +810,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -848,7 +850,7 @@ class TestParallelToolExecution:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),

@@ -1,8 +1,8 @@
 # goz
 
-A Python coding agent for Z.AI, built as a litehive engine.
+A Python coding agent for Z.AI.
 
-goz runs as a CLI tool that accepts prompts, uses tools (file read/write, bash, glob, grep), and outputs JSONL events compatible with the litehive orchestrator.
+`goz run` is a general-purpose prompt executor that can be used directly or as a Litehive engine. In JSON mode it emits a stable JSONL event stream that external orchestrators can consume without depending on Litehive-specific verdict text.
 
 ## Install
 
@@ -14,7 +14,7 @@ uv pip install -e .
 
 ## Usage
 
-### One-shot agent run (litehive engine mode)
+### One-shot agent run
 
 ```bash
 goz run --format json "Implement a hello world function and add tests"
@@ -23,6 +23,24 @@ goz run --model glm-5.1 --format json "Refactor the config module"
 goz run --max-turns 30 --format json "Add input validation"
 goz run --resume-session <id> "Continue from where you left off"
 ```
+
+### `goz run` JSONL contract
+
+`goz run --format json` emits newline-delimited JSON events. External callers should treat these event types as the stable contract:
+
+- `text`: assistant text output. This is plain streamed text and may contain any content; callers should not require `STAGE_RESULT` or any other verdict-shaped payload unless they explicitly own that prompt contract.
+- `tool_use`: a completed tool invocation with the tool name, parsed input, output, and error status.
+- `step_finish`: the terminal event for the run. It includes token and cost accounting, the session ID, and a continuation payload for resumable orchestration.
+
+The `step_finish.part.continuation` payload is stable and shaped like:
+
+```json
+{
+  "resume_session_id": "<session-id>"
+}
+```
+
+That payload can be passed back to `goz run --resume-session <session-id>` by Litehive or any other orchestrator.
 
 ### CLI commands
 

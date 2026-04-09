@@ -21,6 +21,8 @@ from goz.cli.run import DEFAULT_SYSTEM_PROMPT, run_prompt_jsonl
 from goz.config import Config
 from goz.context import CONTEXT_FILES, DEFAULT_MAX_CHARS, load_project_context
 
+GENERIC_ASSISTANT_TEXT = "Completed the requested work.\n"
+
 
 class TestLoadProjectContext:
     def test_returns_empty_when_no_files_exist(self, tmp_path):
@@ -130,7 +132,7 @@ class TestContextInSystemPrompt:
             ContentBlockDelta(
                 type="text_delta",
                 index=0,
-                text="All done.\n",
+                text=GENERIC_ASSISTANT_TEXT,
             ),
             ContentBlockStop(index=0),
             MessageStop(stop_reason="end_turn"),
@@ -162,7 +164,7 @@ class TestContextInSystemPrompt:
                     ContentBlockDelta(
                         type="text_delta",
                         index=0,
-                        text="All done.\n",
+                        text=GENERIC_ASSISTANT_TEXT,
                     ),
                     ContentBlockStop(index=0),
                     MessageStop(stop_reason="end_turn"),
@@ -199,8 +201,9 @@ class TestContextInSystemPrompt:
                         MessageStart(id="msg_1", model="test-model"),
                         ContentBlockStart(type="text", index=0),
                         ContentBlockDelta(
-                            type="text_delta", index=0,
-                            text="All done.\n",
+                            type="text_delta",
+                            index=0,
+                            text=GENERIC_ASSISTANT_TEXT,
                         ),
                         ContentBlockStop(index=0),
                         MessageStop(stop_reason="end_turn"),
