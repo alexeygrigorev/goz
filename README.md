@@ -7,9 +7,26 @@ A Python coding agent for Z.AI.
 ## Install
 
 ```bash
-pip install -e .
-# or
-uv pip install -e .
+cd ~/git/goz
+python3 -m venv .venv
+.venv/bin/pip install -e .
+```
+
+Create a launcher in `~/bin/goz` that calls the module directly from the
+project virtualenv:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec "$HOME/git/goz/.venv/bin/python" -m goz "$@"
+```
+
+Make it executable and ensure `~/bin` is on your `PATH`:
+
+```bash
+chmod +x ~/bin/goz
+goz --help
 ```
 
 ## Usage
